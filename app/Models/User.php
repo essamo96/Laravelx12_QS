@@ -2,47 +2,115 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
+        'username',
         'name',
         'email',
         'password',
+        'role',
+        'created_by',
+        'status',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
         ];
+    }
+
+    // علاقة بالمستخدم الذي أنشأ الحساب
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // فلترة المستخدمين النشطين فقط
+    public function scopeActive($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    ////////////////////////////////
+    // إضافة مستخدم جديد
+    public function addUser($username, $name, $email, $role, $created_by, $password, $status)
+    {
+        $this->username = $username;
+        $this->name = $name;
+        $this->email = $email;
+        $this->role = $role;
+        $this->created_by = $created_by;
+        $this->password = bcrypt($password); // تشفير كلمة المرور
+        $this->status = $status;
+
+        $this->save();
+        return $this;
+    }
+
+    ////////////////////////////////
+    // تعديل بيانات مستخدم
+    public function updateUser($obj, $username, $name, $email, $role, $status)
+    {
+        $obj->username = $username;
+        $obj->name = $name;
+        $obj->email = $email;
+        $obj->role = $role;
+        $obj->status = $status;
+
+        $obj->save();
+        return $obj;
+    }
+
+    ////////////////////////////////
+    // تحديث كلمة المرور
+    public function updatePassword($id, $password)
+    {
+        return $this->where('id', $id)
+            ->update(['password' => bcrypt($password)]);
+    }
+
+    ////////////////////////////////
+    // تحديث الحالة (نشط / غير نشط)
+    public function updateStatus($id, $status)
+    {
+        return $this->where('id', $id)
+            ->update(['status' => $status]);
+    }
+
+    ////////////////////////////////
+    // حذف مستخدم (Soft Delete)
+    public function deleteUser($obj)
+    {
+        return $obj->delete();
+    }
+
+    ////////////////////////////////
+    // جلب مستخدم حسب الـ ID
+    public function getUser($id)
+    {
+        return $this->find($id);
+    }
+
+    ////////////////////////////////
+    // جلب كل المستخدمين الغير محذوفين
+    public function getUsers()
+    {
+        return $this->whereNull('deleted_at')->get();
     }
 }

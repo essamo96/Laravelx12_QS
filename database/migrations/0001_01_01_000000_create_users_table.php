@@ -12,13 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
+            $table->id(); // bigint unsigned auto_increment
+            $table->string('name', 191);
+            $table->string('username', 191)->nullable();
+            $table->string('email', 191); // لا يوجد unique في الجدول القديم
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->timestamps();
+            $table->string('password', 191);
+            $table->string('created_by', 255)->nullable();
+            $table->string('role', 255)->nullable();
+            $table->tinyInteger('status')->default(1); // لا يقبل null
+            $table->rememberToken(); // varchar(100), nullable
+            $table->timestamps(); // created_at, updated_at
+            $table->softDeletes(); // deleted_at
+            $table->index('email'); // موجود كـ Index في الجدول القديم
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
