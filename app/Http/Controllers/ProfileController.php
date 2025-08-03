@@ -11,6 +11,17 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    public function showPage($slug)
+    {
+        // التحقق إن كانت الصفحة موجودة
+        if (view()->exists('admin.layout.' . $slug)) {
+            return view('admin.layout.' . $slug);
+        }
+
+        // في حال لم تكن موجودة، أرجع صفحة 404
+        abort(404);
+    }
+
     /**
      * Display the user's profile form.
      */
