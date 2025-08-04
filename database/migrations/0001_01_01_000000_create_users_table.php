@@ -19,12 +19,14 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password', 191);
             $table->string('created_by', 255)->nullable();
-            $table->string('role', 255)->nullable();
+            $table->unsignedBigInteger('role_id')->nullable();
             $table->tinyInteger('status')->default(1); // لا يقبل null
             $table->rememberToken(); // varchar(100), nullable
             $table->timestamps(); // created_at, updated_at
             $table->softDeletes(); // deleted_at
             $table->index('email'); // موجود كـ Index في الجدول القديم
+
+            $table->foreign('role_id')->references('id')->on('roles')->onDelete('set null');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

@@ -6,19 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Laravel\Sanctum\HasApiTokens;
+// use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Models\Role;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use  HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     protected $fillable = [
         'username',
         'name',
         'email',
         'password',
-        'role',
+        'role_id',
         'created_by',
         'status',
     ];
@@ -34,7 +35,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
         ];
     }
-
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
     // علاقة بالمستخدم الذي أنشأ الحساب
     public function creator()
     {

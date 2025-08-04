@@ -99,6 +99,9 @@
             </div>
         </div>
     </div>
+    @section('js')
+    <script src="{{asset('admin/assets/js/custom/authentication/sign-in/general.js')}}"></script>
+    @endsection
 </x-guest-layout>
 
 {{-- <x-guest-layout>

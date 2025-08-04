@@ -47,9 +47,10 @@
     </div>
 
     <script>var hostUrl = "assets/";</script>
-    <script src="admin/assets/plugins/global/plugins.bundle.js"></script>
-    <script src="admin/assets/js/scripts.bundle.js"></script>
-    <script src="admin/assets/js/custom/authentication/sign-in/general.js"></script>
+    <script src="{{asset('admin/assets/plugins/global/plugins.bundle.js')}}"></script>
+    <script src="{{asset('admin/assets/js/scripts.bundle.js')}}"></script>
+    @yield('js')
+
 </body>
 </html>
 
