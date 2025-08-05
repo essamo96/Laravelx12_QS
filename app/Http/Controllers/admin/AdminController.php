@@ -22,6 +22,7 @@ class AdminController extends BaseController {
     public function __construct() {
         $permission_group = new PermissionsGroup();
         self::$data['sidebar'] = $permission_group->getAllParentPermissionGroup();
+        // dd(self::$data['sidebar']);
         self::$data['settings'] = Setting::where('id', 1)->first();
         $route_name = Route::currentRouteName();
         $route_data = explode('.', $route_name);
@@ -34,7 +35,7 @@ class AdminController extends BaseController {
             if ($current_route == $menu_item->name) {
                 self::$data['current_route'] = $menu_item;
             }
-            foreach ($menu_item->mychild as $child_item) {
+            foreach ($menu_item->children as $child_item) {
                 if ($current_route == $child_item->name) {
                     self::$data['current_route'] = $child_item;
                     break;

@@ -38,7 +38,7 @@ class PermissionsGroup extends Model
     // العلاقة مع جدول الصلاحيات
     public function permissions()
     {
-        return $this->hasMany(Permissions::class, 'group_id', 'id');
+        return $this->hasMany(Permission::class, 'group_id', 'id');
     }
 
     /*
