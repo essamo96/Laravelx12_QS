@@ -25,17 +25,20 @@ class AdminController extends BaseController {
         // dd(self::$data['sidebar']);
         self::$data['settings'] = Setting::where('id', 1)->first();
         $route_name = Route::currentRouteName();
+        // dd($route_name);
         $route_data = explode('.', $route_name);
         $current_route = $route_data[0];
+        // dd($current_route);
         $init_obj = new \stdClass();
         $init_obj->name = '';
         $init_obj->parent_id = '';
         self::$data['current_route'] = $init_obj;
         foreach (self::$data['sidebar'] as $menu_item) {
+            // dd($menu_item->name_ar);
             if ($current_route == $menu_item->name) {
-                self::$data['current_route'] = $menu_item;
+                // self::$data['current_route'] = $menu_item;
             }
-            foreach ($menu_item->children as $child_item) {
+            foreach ($menu_item->mychild as $child_item) {
                 if ($current_route == $child_item->name) {
                     self::$data['current_route'] = $child_item;
                     break;

@@ -17,7 +17,7 @@ class DashboardController extends AdminController {
 
     ///////////////////////////////
     public function getIndex() {
-
+        // dd(self::$data['current_route']);
         return view('admin.dashboard.view', parent::$data);
     }
 

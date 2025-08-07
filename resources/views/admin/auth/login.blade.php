@@ -2,8 +2,10 @@
     <div class="d-flex flex-column flex-lg-row flex-column-fluid">
         <div class="d-flex flex-lg-row-fluid">
             <div class="d-flex flex-column flex-center pb-0 pb-lg-10 p-10 w-100">
-                <img class="theme-light-show mx-auto mw-100 w-150px w-lg-300px mb-10 mb-lg-20" src="admin/assets/media/auth/agency.png" alt="" />
-                <img class="theme-dark-show mx-auto mw-100 w-150px w-lg-300px mb-10 mb-lg-20" src="admin/assets/media/auth/agency-dark.png" alt="" />
+                <img class="theme-light-show mx-auto mw-100 w-150px w-lg-300px mb-10 mb-lg-20"
+                    src="admin/assets/media/auth/agency.png" alt="" />
+                <img class="theme-dark-show mx-auto mw-100 w-150px w-lg-300px mb-10 mb-lg-20"
+                    src="admin/assets/media/auth/agency-dark.png" alt="" />
                 <h1 class="text-gray-800 fs-2qx fw-bold text-center mb-7">Fast, Efficient and Productive</h1>
                 <div class="text-gray-600 fs-base text-center fw-semibold">
                     In this kind of post,
@@ -23,6 +25,25 @@
                     <div class="d-flex flex-center flex-column flex-column-fluid pb-15 pb-lg-20">
                         <form method="POST" action="{{ route('login') }}" class="form w-100" id="kt_sign_in_form">
                             @csrf
+
+                            {{-- رسالة الخطأ العامة --}}
+                            @if (session('danger'))
+                                <div class="alert alert-danger text-center">
+                                    {{ session('danger') }}
+                                </div>
+                            @endif
+
+                            {{-- قائمة الأخطاء الجماعية --}}
+                            @if ($errors->any())
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
                             <div class="text-center mb-11">
                                 <h1 class="text-dark fw-bolder mb-3">Sign In</h1>
                                 <div class="text-gray-500 fw-semibold fs-6">Your Social Campaigns</div>
@@ -30,30 +51,50 @@
 
                             <div class="row g-3 mb-9">
                                 <div class="col-md-6">
-                                    <a href="#" class="btn btn-flex btn-outline btn-text-gray-700 btn-active-color-primary bg-state-light flex-center text-nowrap w-100">
-                                        <img alt="Logo" src="admin/assets/media/svg/brand-logos/google-icon.svg" class="h-15px me-3" />
+                                    <a href="#"
+                                        class="btn btn-flex btn-outline btn-text-gray-700 btn-active-color-primary bg-state-light flex-center text-nowrap w-100">
+                                        <img alt="Logo" src="admin/assets/media/svg/brand-logos/google-icon.svg"
+                                            class="h-15px me-3" />
                                         Sign in with Google
                                     </a>
                                 </div>
                                 <div class="col-md-6">
-                                    <a href="#" class="btn btn-flex btn-outline btn-text-gray-700 btn-active-color-primary bg-state-light flex-center text-nowrap w-100">
-                                        <img alt="Logo" src="admin/assets/media/svg/brand-logos/apple-black.svg" class="theme-light-show h-15px me-3" />
-                                        <img alt="Logo" src="admin/assets/media/svg/brand-logos/apple-black-dark.svg" class="theme-dark-show h-15px me-3" />
+                                    <a href="#"
+                                        class="btn btn-flex btn-outline btn-text-gray-700 btn-active-color-primary bg-state-light flex-center text-nowrap w-100">
+                                        <img alt="Logo" src="admin/assets/media/svg/brand-logos/apple-black.svg"
+                                            class="theme-light-show h-15px me-3" />
+                                        <img alt="Logo"
+                                            src="admin/assets/media/svg/brand-logos/apple-black-dark.svg"
+                                            class="theme-dark-show h-15px me-3" />
                                         Sign in with Apple
                                     </a>
                                 </div>
                             </div>
 
                             <div class="separator separator-content my-14">
-                                <span class="w-125px text-gray-500 fw-semibold fs-7">Or with email</span>
+                                <span class="w-125px text-gray-500 fw-semibold fs-7">Or with email or username</span>
                             </div>
 
+                            {{-- حقل البريد أو اسم المستخدم --}}
                             <div class="fv-row mb-8">
-                                <input type="email" name="email" placeholder="Email" class="form-control bg-transparent" required autofocus>
+                                <input type="text" name="username" placeholder="Email or Username"
+                                    class="form-control bg-transparent @error('username') is-invalid @enderror"
+                                    value="{{ old('username') }}" required autofocus>
+
+                                @error('username')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                             </div>
 
+                            {{-- حقل كلمة المرور --}}
                             <div class="fv-row mb-3">
-                                <input type="password" name="password" placeholder="Password" class="form-control bg-transparent" required autocomplete="current-password">
+                                <input type="password" name="password" placeholder="Password"
+                                    class="form-control bg-transparent @error('password') is-invalid @enderror" required
+                                    autocomplete="current-password">
+
+                                @error('password')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div class="d-flex flex-stack flex-wrap gap-3 fs-base fw-semibold mb-8">
@@ -79,12 +120,17 @@
                                 <a href="{{ route('register') }}" class="link-primary">Sign up</a>
                             </div>
                         </form>
+
+
                     </div>
 
                     <div class="d-flex flex-stack">
                         <div class="me-10">
-                            <button class="btn btn-flex btn-link btn-color-gray-700 btn-active-color-primary rotate fs-base" data-kt-menu-trigger="click" data-kt-menu-placement="bottom-start">
-                                <img class="w-20px h-20px rounded me-3" src="admin/assets/media/flags/united-states.svg" alt="" />
+                            <button
+                                class="btn btn-flex btn-link btn-color-gray-700 btn-active-color-primary rotate fs-base"
+                                data-kt-menu-trigger="click" data-kt-menu-placement="bottom-start">
+                                <img class="w-20px h-20px rounded me-3" src="admin/assets/media/flags/united-states.svg"
+                                    alt="" />
                                 <span class="me-1">English</span>
                                 <i class="ki-duotone ki-down fs-5 text-muted rotate-180 m-0"></i>
                             </button>
@@ -100,7 +146,7 @@
         </div>
     </div>
     @section('js')
-    <script src="{{asset('admin/assets/js/custom/authentication/sign-in/general.js')}}"></script>
+        <script src="{{ asset('admin/assets/js/custom/authentication/sign-in/general.js') }}"></script>
     @endsection
 </x-guest-layout>
 

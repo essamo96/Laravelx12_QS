@@ -1,7 +1,6 @@
-<div id="kt_app_sidebar" class="app-sidebar flex-column" data-kt-drawer="true"
-    data-kt-drawer-name="app-sidebar" data-kt-drawer-activate="{default: true, lg: false}"
-    data-kt-drawer-overlay="true" data-kt-drawer-width="225px" data-kt-drawer-direction="start"
-    data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle">
+<div id="kt_app_sidebar" class="app-sidebar flex-column" data-kt-drawer="true" data-kt-drawer-name="app-sidebar"
+    data-kt-drawer-activate="{default: true, lg: false}" data-kt-drawer-overlay="true" data-kt-drawer-width="225px"
+    data-kt-drawer-direction="start" data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle">
 
     <div class="app-sidebar-logo px-6" id="kt_app_sidebar_logo">
         <a href="../../demo1/dist/index.html">
@@ -22,14 +21,45 @@
         </div>
     </div>
 
-    <div class="app-sidebar-menu overflow-hidden flex-column-fluid">
+        <div class="app-sidebar-menu overflow-hidden flex-column-fluid">
         <div id="kt_app_sidebar_menu_wrapper" class="app-sidebar-wrapper hover-scroll-overlay-y my-5"
             data-kt-scroll="true" data-kt-scroll-activate="true" data-kt-scroll-height="auto"
             data-kt-scroll-dependencies="#kt_app_sidebar_logo, #kt_app_sidebar_footer"
-            data-kt-scroll-wrappers="#kt_app_sidebar_menu" data-kt-scroll-offset="5px"
-            data-kt-scroll-save-state="true">
-
+            data-kt-scroll-wrappers="#kt_app_sidebar_menu" data-kt-scroll-offset="5px" data-kt-scroll-save-state="true">
             <div class="menu menu-column menu-rounded menu-sub-indention px-3" id="#kt_app_sidebar_menu"
+                data-kt-menu="true" data-kt-menu-expand="false">
+                @php
+                    $colors = ['text-primary', 'text-success', 'text-info', 'text-warning', 'text-danger'];
+                    $i = 0;
+                @endphp
+
+                @foreach ($sidebar as $item)
+                    @php
+                        if ($i >= count($colors)) {
+                            $i = 0;
+                        }
+                        $color = $colors[$i++];
+                        $namep = 'admin.' . ($item->name ?? '') . '.view';
+                    @endphp
+
+                    @can($namep)
+                        @if (!empty($item->mychild) && count($item->mychild) > 0)
+                            @include('admin.components.sidebar-item-with-children', [
+                                'item' => $item,
+                                'active_menu' => $active_menu ?? '',
+                                'color' => $color,
+                            ])
+                        @else
+                            @include('admin.components.sidebar-item-single', [
+                                'item' => $item,
+                                'color' => $color,
+                            ])
+                        @endif
+                    @endcan
+                @endforeach
+            </div>
+
+            {{-- <div class="menu menu-column menu-rounded menu-sub-indention px-3" id="#kt_app_sidebar_menu"
                 data-kt-menu="true" data-kt-menu-expand="false">
 
                 <div data-kt-menu-trigger="click" class="menu-item menu-accordion">
@@ -92,7 +122,6 @@
                         <span class="menu-heading fw-bold text-uppercase fs-7">Pages</span>
                     </div>
                 </div>
-
                 <div data-kt-menu-trigger="click" class="menu-item menu-accordion">
                     <span class="menu-link">
                         <span class="menu-icon">
@@ -129,9 +158,11 @@
                         <span class="menu-title">Layout Builder</span>
                     </a>
                 </div>
-            </div>
+            </div> --}}
         </div>
     </div>
+
+
 
     <div class="app-sidebar-footer flex-column-auto pt-2 pb-6 px-6" id="kt_app_sidebar_footer">
         <a href="#"

@@ -24,7 +24,7 @@ class PermissionsGroup extends Model
     */
 
     // العلاقة مع الأبناء (مجموعات فرعية)
-    public function children()
+    public function mychild()
     {
         return $this->hasMany(self::class, 'parent_id')->orderBy('sort', 'asc');
     }

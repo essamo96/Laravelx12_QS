@@ -20,17 +20,17 @@ class Role extends Model
     /**
      * علاقة مع جدول الأدمن
      */
-    public function admins()
-    {
-        return $this->hasMany(Admin::class);
-    }
+    // public function admins()
+    // {
+    //     return $this->hasMany(Admin::class);
+    // }
 
     /**
      * علاقة مع جدول الصلاحيات
      */
     public function permissions()
     {
-        return $this->belongsToMany(Permissions::class, 'role_has_permissions', 'role_id', 'permission_id');
+        return $this->belongsToMany(Permission::class, 'role_has_permissions', 'role_id', 'permission_id');
     }
 
     /**
