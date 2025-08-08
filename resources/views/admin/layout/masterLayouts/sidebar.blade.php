@@ -52,6 +52,7 @@
                         @else
                             @include('admin.components.sidebar-item-single', [
                                 'item' => $item,
+                                'active_menu' => $active_menu ?? '',
                                 'color' => $color,
                             ])
                         @endif

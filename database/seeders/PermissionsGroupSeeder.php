@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class PermissionsGroupSeeder extends Seeder
 {
@@ -103,8 +102,6 @@ class PermissionsGroupSeeder extends Seeder
                 'created_at' => '2023-04-11 17:06:37',
                 'updated_at' => '2023-04-12 10:35:58',
             ],
-
-
             [
                 'name' => 'pages',
                 'name_ar' => 'الصفحات الثابته',
@@ -127,7 +124,6 @@ class PermissionsGroupSeeder extends Seeder
                 'created_at' => '2023-04-17 12:46:53',
                 'updated_at' => '2023-04-17 12:53:15',
             ],
-
             [
                 'name' => 'notifications',
                 'name_ar' => 'الاشعارات',
@@ -139,7 +135,6 @@ class PermissionsGroupSeeder extends Seeder
                 'created_at' => '2023-06-12 20:13:54',
                 'updated_at' => '2024-08-25 16:10:07',
             ],
-
             [
                 'name' => 'static_system',
                 'name_ar' => 'ثوابت النظام',
@@ -151,17 +146,6 @@ class PermissionsGroupSeeder extends Seeder
                 'created_at' => '2024-08-08 18:05:02',
                 'updated_at' => '2024-08-08 18:05:02',
             ],
-            // [
-            //     'name' => 'group',
-            //     'name_ar' => 'ادارة المجموعات',
-            //     'name_en' => 'Group management',
-            //     'icon' => 'bi bi-diagram-3-fill',
-            //     'sort' => 5,
-            //     'status' => 1,
-            //     'parent_id' => 0,
-            //     'created_at' => '2024-08-20 12:06:38',
-            //     'updated_at' => '2024-08-20 12:15:04',
-            // ],
         ];
 
         foreach ($groups as $index => $group) {

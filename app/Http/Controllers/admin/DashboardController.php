@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Session;
 
 class DashboardController extends AdminController {
 
     public function __construct() {
-//        $info = Admin::findOrFail(8);
-//        $info->assignRole('employee');
-//        Cache::forget('spatie.permission.cache');
         parent::__construct();
         parent::$data['active_menu'] = 'dashboard';
     }
@@ -21,9 +20,16 @@ class DashboardController extends AdminController {
         return view('admin.dashboard.view', parent::$data);
     }
 
-    public function getLang($lang) {
-        Cache::forget('lang_' . Auth::guard('admin')->user()->id);
-        Cache::forever('lang_' . Auth::guard('admin')->user()->id, $lang);
-        return redirect(url()->previous());
+public function getLang($lang)
+{
+    if (Auth::guard('admin')->check()) {
+        $key = 'locale_' . Auth::guard('admin')->id();
+        Session::put($key, $lang);
+    } else {
+        Session::put('locale', $lang);
     }
+
+    return redirect()->back();
+}
+
 }

@@ -2,23 +2,40 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
+// الصفحة الرئيسية
 Route::get('/', function () {
     return view('welcome');
 });
 
+// إعادة توجيه /admin
+Route::get('/admin', function () {
+    if (Auth::guard('admin')->check()) {
+        return redirect()->route('dashboard.view');
+    }
+    return redirect()->route('login'); // admin.login
+});
 
-Route::group(['namespace' => 'App\Http\Controllers\Admin', 'prefix' => 'admin', 'middleware' => ['guest:admin']], function () {
+// تسجيل دخول المشرفين
+Route::group([
+    'namespace' => 'App\Http\Controllers\Admin',
+    'prefix' => 'admin',
+    'middleware' => ['guest:admin']
+], function () {
     Route::get('login', ['as' => 'login', 'uses' => 'LoginController@getIndex']);
     Route::post('login', ['as' => 'login.post', 'uses' => 'LoginController@postIndex']);
 });
 
-Route::get('/admin', function () {
-    return redirect('admin/dashboard');
-});
+// صفحة ديناميكية
 Route::get('/layout/{slug}', [ProfileController::class, 'showPage'])->name('admin.dynamic.page');
 
-Route::group(['namespace' => 'App\Http\Controllers\Admin', 'prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+// لوحة تحكم المشرفين
+Route::group([
+    'namespace' => 'App\Http\Controllers\Admin',
+    'prefix' => 'admin',
+    'middleware' => ['auth:admin']
+], function () {
     Route::get('lang/{lang}', ['as' => 'dashboard.lang', 'uses' => 'DashboardController@getLang']);
     Route::get('logout', ['as' => 'app.logout', 'uses' => 'LoginController@getLogout']);
     Route::get('dashboard', ['as' => 'dashboard.view', 'middleware' => ['permission:admin.dashboard.view'], 'uses' => 'DashboardController@getIndex']);
@@ -29,24 +46,22 @@ Route::group(['namespace' => 'App\Http\Controllers\Admin', 'prefix' => 'admin', 
     Route::get('users_menu/', ['as' => 'users_menu.view', 'uses' => 'DashboardController@getIndex']);
     Route::get('static_system', ['as' => 'static_system.view', 'middleware' => ['permission:admin.dashboard.view'], 'uses' => 'DashboardController@getIndex']);
 
-
-    //Roles Route
+    // Roles Route
     require __DIR__ . '/roles.php';
 
-    // //Settings Route
-    // require __DIR__ . '/settings.php';
-
-    //permissions Route
+    // Permissions Route
     require __DIR__ . '/permissions.php';
 
-    //permissions_group Route
+    // Permissions Group Route
     require __DIR__ . '/permissions_group.php';
 });
+
+// ملفات البروفايل للمستخدمين العاديين
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('lang/{lang}', ['as' => 'dashboard.lang', 'uses' => 'DashboardController@getLang']);
+// Auth routes
 require __DIR__ . '/auth.php';

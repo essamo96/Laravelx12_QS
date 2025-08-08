@@ -1,13 +1,7 @@
 @extends('admin.layout.main_master')
 @section('title')
-    admin - dashboard
+    {{ $current_route->{'name_' . trans('app.lang')} }}
 @stop
-{{-- @section('page-breadcrumb')
-<li class="breadcrumb-item text-muted">
-    <a href="{{ url('/') }}" class="text-muted text-hover-primary">@lang('app.home')</a>
-</li>
-<li class="breadcrumb-item text-muted">- {{ $current_route->{'name_' . trans('app.lang')} }}</li>
-@stop --}}
 
 @section('page-content')
     <div id="kt_app_content_container" class="app-container container-xxl">

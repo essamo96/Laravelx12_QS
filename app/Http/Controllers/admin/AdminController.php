@@ -19,52 +19,42 @@ class AdminController extends BaseController {
         DispatchesJobs,
         ValidatesRequests;
 
-    public function __construct() {
-        $permission_group = new PermissionsGroup();
-        self::$data['sidebar'] = $permission_group->getAllParentPermissionGroup();
-        // dd(self::$data['sidebar']);
-        self::$data['settings'] = Setting::where('id', 1)->first();
-        $route_name = Route::currentRouteName();
-        // dd($route_name);
-        $route_data = explode('.', $route_name);
-        $current_route = $route_data[0];
-        // dd($current_route);
-        $init_obj = new \stdClass();
-        $init_obj->name = '';
-        $init_obj->parent_id = '';
-        self::$data['current_route'] = $init_obj;
-        foreach (self::$data['sidebar'] as $menu_item) {
-            // dd($menu_item->name_ar);
-            if ($current_route == $menu_item->name) {
-                // self::$data['current_route'] = $menu_item;
-            }
+public function __construct() {
+    $permission_group = new PermissionsGroup();
+    self::$data['sidebar'] = $permission_group->getAllParentPermissionGroup();
+    self::$data['settings'] = Setting::where('id', 1)->first();
+
+    // الحصول على اسم الراوت الحالي
+    $route_name = Route::currentRouteName();
+    $route_data = explode('.', $route_name);
+    $current_route = $route_data[0] ?? '';
+
+    // قيمة افتراضية في حال عدم وجود تطابق
+    $init_obj = new \stdClass();
+    $init_obj->name = '';
+    $init_obj->name_ar = '';
+    $init_obj->name_en = '';
+    $init_obj->parent_id = '';
+    self::$data['current_route'] = $init_obj;
+
+    // البحث عن تطابق في القائمة الجانبية (الأبناء أو الأبوين)
+    foreach (self::$data['sidebar'] as $menu_item) {
+        // تحقق من الأب نفسه
+        if ($current_route === $menu_item->name) {
+            self::$data['current_route'] = $menu_item;
+            break;  // وجدنا التطابق نوقف البحث
+        }
+
+        // تحقق من الأبناء إن وجدوا (mychild قد تكون مصفوفة أو empty)
+        if (!empty($menu_item->mychild)) {
             foreach ($menu_item->mychild as $child_item) {
-                if ($current_route == $child_item->name) {
+                if ($current_route === $child_item->name) {
                     self::$data['current_route'] = $child_item;
-                    break;
+                    break 2; // خروج من الحلقات كلها
                 }
             }
         }
-        // self::$data['parents'] = Parents::all();
-        // self::$data['admins'] = Admin::all();
-        // self::$data['deletedAdmins'] = Admin::onlyTrashed()->get();
-        // self::$data['materials'] = Materials::all();
-        // self::$data['storehouse'] = Storehouse::all();
-        // // أولياء الأمور المضافين يوميًا
-        // $dailyParents = Parents::whereDate('created_at', Carbon::today())->count();
-
-        // // أولياء الأمور المضافين أسبوعيًا
-        // $weeklyParents = Parents::whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()])->count();
-
-        // // أولياء الأمور المضافين شهريًا
-        // $monthlyParents = Parents::whereMonth('created_at', Carbon::now()->month)->count();
-
-        // // أولياء الأمور المضافين سنويًا
-        // $yearlyParents = Parents::whereYear('created_at', Carbon::now()->year)->count();
-
-        // self::$data['dailyParents'] = $dailyParents;
-        // self::$data['weeklyParents'] = $weeklyParents;
-        // self::$data['monthlyParents'] = $monthlyParents;
-        // self::$data['yearlyParents'] = $yearlyParents;
     }
+}
+
 }
