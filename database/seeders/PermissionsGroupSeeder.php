@@ -109,7 +109,7 @@ class PermissionsGroupSeeder extends Seeder
                 'icon' => null,
                 'sort' => 5,
                 'status' => 1,
-                'parent_id' => 54,
+                'parent_id' => 45,
                 'created_at' => '2023-04-16 10:46:11',
                 'updated_at' => '2023-04-17 12:50:49',
             ],
