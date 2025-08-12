@@ -12,7 +12,7 @@ class PermissionsGroup extends Model
     protected $table = 'permissions_group';
 
     protected $fillable = [
-        'name', 'name_ar', 'name_en', 'icon', 'sort', 'status', 'parent_id',
+        'name', 'name_ar', 'name_en', 'icon', 'sort','color', 'status', 'parent_id',
     ];
 
     protected $hidden = [];
@@ -46,35 +46,6 @@ class PermissionsGroup extends Model
     | Scopes / Actions
     |--------------------------------------------------------------------------
     */
-
-    public function addPermissionsGroup($name, $name_ar, $name_en, $icon, $sort, $status, $parent_id)
-    {
-        $this->name = $name;
-        $this->name_ar = $name_ar;
-        $this->name_en = $name_en;
-        $this->icon = $icon;
-        $this->sort = $sort;
-        $this->status = $status;
-        $this->parent_id = $parent_id;
-
-        $this->save();
-        return $this;
-    }
-
-    public function updatePermissionsGroup($obj, $name, $name_ar, $name_en, $icon, $sort, $status, $parent_id)
-    {
-        $obj->name = $name;
-        $obj->name_ar = $name_ar;
-        $obj->name_en = $name_en;
-        $obj->icon = $icon;
-        $obj->sort = $sort;
-        $obj->status = $status;
-        $obj->parent_id = $parent_id;
-
-        $obj->save();
-        return $obj;
-    }
-
     public function deletePermissionsGroup($obj)
     {
         return $obj->delete();

@@ -27,7 +27,7 @@
 @section('page-content')
 <form action="" method="POST">
     <div class="card-body fs-6 py-15 px-10 py-lg-15 px-lg-15 text-gray-700">
-            @include('admin.layout.error')
+            @include('admin.layout.masterLayouts.error')
 
             <div class="form-floating mb-7 row ">
                 <div class="col">

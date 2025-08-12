@@ -18,33 +18,33 @@
     <link rel="shortcut icon" href="{{ asset('admin/assets/media/logos/favicon.ico') }}" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
     <!-- خطوط جوجل -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap&subset=arabic" rel="stylesheet" />
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap&subset=arabic"
+        rel="stylesheet" />
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="{{ asset('admin/assets/plugins/custom/datatables/datatables.bundle.css') }}" rel="stylesheet"
-        type="text/css" />
     @if (App::isLocale('en'))
+        <link href="{{ asset('admin/assets/plugins/custom/datatables/datatables.bundle.css') }}" rel="stylesheet"
+            type="text/css" />
         <link href="{{ asset('admin/assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
         <link href="{{ asset('admin/assets/css/style.bundle.css') }}" rel="stylesheet" type="text/css" />
     @else
+        <link href="{{ asset('admin/assets/plugins/custom/datatables/datatables.bundle.rtl.css') }}" rel="stylesheet"
+            type="text/css" />
         <link href="{{ asset('admin/rtl/plugins.bundle.rtl.css') }}" rel="stylesheet" type="text/css" />
         <link href="{{ asset('admin/rtl/style.bundle.rtl.css') }}" rel="stylesheet" type="text/css" />
     @endif
 
     @if (App::isLocale('en'))
         <style>
-
             .app-sidebar-menu * {
                 font-family: 'Inter', sans-serif !important;
             }
         </style>
     @else
         <style>
-
             .app-sidebar-menu * {
-                 font-family: 'Cairo', sans-serif !important;
+                font-family: 'Cairo', sans-serif !important;
             }
         </style>
     @endif

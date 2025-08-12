@@ -29,6 +29,17 @@ Route::group([
 
 // صفحة ديناميكية
 Route::get('/layout/{slug}', [ProfileController::class, 'showPage'])->name('admin.dynamic.page');
+Route::get('lang/{locale}/datatables.json', function ($locale) {
+    $path = base_path("lang/{$locale}/datatables.json");
+
+    if (!file_exists($path)) {
+        abort(404, 'Language file not found.');
+    }
+
+    return response()->file($path, [
+        'Content-Type' => 'application/json'
+    ]);
+})->name('datatables.lang');
 
 // لوحة تحكم المشرفين
 Route::group([
@@ -37,6 +48,7 @@ Route::group([
     'middleware' => ['auth:admin']
 ], function () {
     Route::get('lang/{lang}', ['as' => 'dashboard.lang', 'uses' => 'DashboardController@getLang']);
+
     Route::get('logout', ['as' => 'app.logout', 'uses' => 'LoginController@getLogout']);
     Route::get('dashboard', ['as' => 'dashboard.view', 'middleware' => ['permission:admin.dashboard.view'], 'uses' => 'DashboardController@getIndex']);
     Route::get('notifications/', ['as' => 'notifications.view', 'uses' => 'DashboardController@getIndex']);

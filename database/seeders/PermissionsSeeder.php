@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\DB;
 
 class PermissionsSeeder extends Seeder
 {
-     public function run(): void
+    public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         DB::table('permissions')->truncate();
@@ -18,6 +18,11 @@ class PermissionsSeeder extends Seeder
             $actions = ($group->parent_id != 0)
                 ? ['add', 'view', 'edit', 'delete', 'status']
                 : ['view'];
+
+            // إضافة الصلاحية الخاصة بـ roles
+            if ($group->name === 'roles') {
+                $actions[] = 'permissions';
+            }
 
             foreach ($actions as $action) {
                 DB::table('permissions')->insert([

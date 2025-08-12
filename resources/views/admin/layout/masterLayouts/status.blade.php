@@ -1,4 +1,3 @@
-<script>
     $(document).on('click', '.status', function () {
         var id = $(this).data('href');
         $.ajax({
@@ -20,4 +19,3 @@
             }
         });
     });
-</script>

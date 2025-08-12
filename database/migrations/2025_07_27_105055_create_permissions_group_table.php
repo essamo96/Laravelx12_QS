@@ -16,6 +16,7 @@ return new class extends Migration
         $table->string('name');
         $table->string('name_ar')->nullable();
         $table->string('name_en')->nullable();
+        $table->string('color')->nullable();
         $table->text('icon')->nullable();
         $table->tinyInteger('sort')->nullable();
         $table->boolean('status')->default(1);

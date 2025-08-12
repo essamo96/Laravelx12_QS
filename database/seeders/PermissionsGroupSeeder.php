@@ -13,6 +13,8 @@ class PermissionsGroupSeeder extends Seeder
         DB::table('permissions_group')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
+        $colors = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark'];
+
         $groups = [
             [
                 'name' => 'main_dashboard',
@@ -149,7 +151,11 @@ class PermissionsGroupSeeder extends Seeder
         ];
 
         foreach ($groups as $index => $group) {
-            DB::table('permissions_group')->insert(array_merge($group, ['id' => $index + 1]));
+            // اختر لونًا عشوائيًا من مصفوفة الألوان
+            $randomColor = $colors[array_rand($colors)];
+
+            // أضف عمود 'color' إلى البيانات
+            DB::table('permissions_group')->insert(array_merge($group, ['id' => $index + 1, 'color' => $randomColor]));
         }
     }
 }

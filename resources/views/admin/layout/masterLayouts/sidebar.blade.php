@@ -28,17 +28,17 @@
             data-kt-scroll-wrappers="#kt_app_sidebar_menu" data-kt-scroll-offset="5px" data-kt-scroll-save-state="true">
             <div class="menu menu-column menu-rounded menu-sub-indention px-3" id="#kt_app_sidebar_menu"
                 data-kt-menu="true" data-kt-menu-expand="false">
-                @php
+                {{-- @php
                     $colors = ['text-primary', 'text-success', 'text-info', 'text-warning', 'text-danger'];
                     $i = 0;
-                @endphp
+                @endphp --}}
 
                 @foreach ($sidebar as $item)
                     @php
-                        if ($i >= count($colors)) {
-                            $i = 0;
-                        }
-                        $color = $colors[$i++];
+                        // if ($i >= count($colors)) {
+                        //     $i = 0;
+                        // }
+                        // $color = $colors[$i++];
                         $namep = 'admin.' . ($item->name ?? '') . '.view';
                     @endphp
 
@@ -47,13 +47,13 @@
                             @include('admin.components.sidebar-item-with-children', [
                                 'item' => $item,
                                 'active_menu' => $active_menu ?? '',
-                                'color' => $color,
+
                             ])
                         @else
                             @include('admin.components.sidebar-item-single', [
                                 'item' => $item,
                                 'active_menu' => $active_menu ?? '',
-                                'color' => $color,
+                                
                             ])
                         @endif
                     @endcan

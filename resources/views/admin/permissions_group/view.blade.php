@@ -35,7 +35,7 @@
                         </div>
                     </div>
                     <div class="card-body py-4">
-                        @include('admin.layout.error')
+                        @include('admin.layout.masterLayouts.error')
                         <table id="kt_table" class="table table-row-bordered gy-5">
                             <thead>
                                 <tr class="fw-semibold fs-6 text-muted">
@@ -110,84 +110,9 @@
             $('.generalSearch').on('input', function() {
                 table.ajax.reload();
             });
-
-            $('#confirm').on('show.bs.modal', function(e) {
-                var link = $(e.relatedTarget);
-                var href = link.data('href');
-                $('.delete').on('click', function() {
-                    $.ajax({
-                        url: '<?= route($active_menu . '.delete') ?>',
-                        type: 'POST',
-                        data: {
-                            id: href,
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(data) {
-                            $('#confirm').modal('hide');
-                            Swal.fire({
-                                text: "تم الحذف بنجاح",
-                                title: "نجاح",
-                                icon: "success",
-                                buttonsStyling: false,
-                                showConfirmButton: false,
-                                timer: 2000
-                            });
-
-                            // toastr[data.status](data.message);
-                            table.ajax.reload();
-
-                        }
-                    });
-                });
-                $('#delete_id').val(href);
-            });
+            @include('admin.layout.masterLayouts.delete')
+            @include('admin.layout.masterLayouts.status')
         });
     </script>
-    <script>
-        $(document).ready(function() {
-            $('#status').click(function() {
-                var id = $(this).data('href');
 
-                $.ajax({
-                    type: 'POST',
-                    url: '<?= route($active_menu . '.status') ?>',
-                    data: {
-                        id: id,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function(data) {
-                        toastr[data.status](data.message);
-                    },
-                    error: function(error) {
-                        Swal.fire({
-                            title: "Oops...",
-                            text: "Something went wrong!",
-                            icon: "error",
-                        });
-                    }
-                });
-            });
-            $(document).on('click', '.status', function() {
-                var id = $(this).data('href');
-                $.ajax({
-                    type: 'POST',
-                    url: '<?= route($active_menu . '.status') ?>',
-                    data: {
-                        id: id,
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function(data) {
-                        toastr[data.status](data.message);
-                    },
-                    error: function(error) {
-                        Swal.fire({
-                            title: "Oops...",
-                            text: "Something went wrong!",
-                            icon: "error",
-                        });
-                    }
-                });
-            });
-        });
-    </script>
 @stop

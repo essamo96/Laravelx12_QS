@@ -5,7 +5,7 @@
         <span class="menu-link">
             <span class="menu-icon">
                 <span class="svg-icon svg-icon-2">
-                    <i class="bi {{ $item->icon ?? '' }} fs-1 {{ $color }}"></i>
+                    <i class="bi {{ $item->icon ?? '' }} fs-1 text-{{  $item->color }}"></i>
                 </span>
             </span>
             <span class="menu-title" style="color:white">

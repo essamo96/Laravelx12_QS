@@ -13,6 +13,7 @@ class Role extends Model
 
     protected $fillable = [
         'name',
+        'guard_name',
         'status',
         'is_user',
     ];
@@ -32,7 +33,10 @@ class Role extends Model
     {
         return $this->belongsToMany(Permission::class, 'role_has_permissions', 'role_id', 'permission_id');
     }
-
+    public function users()
+    {
+        return $this->belongsToMany(User::class);
+    }
     /**
      * إضافة رتبة جديدة
      */

@@ -1,20 +1,13 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-
-use Route;
-use App\Models\PermissionsGroup;
-use App\Models\Roles;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use App\Models\PermissionsGroup;
 use Yajra\DataTables\DataTables;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
-
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Contracts\Encryption\DecryptException;
-
 class PermissionsGroupController extends AdminController
 {
     const INSERT_SUCCESS_MESSAGE = "نجاح، تم الإضافة بتجاح";
@@ -42,7 +35,7 @@ class PermissionsGroupController extends AdminController
     }
     public function getAdd()
     {
-    $name = null;
+        $name = null;
         $roles = new PermissionsGroup();
         parent::$data['permissions'] = $roles->getAllPermissionGroupSearch($name);
         parent::$data['info'] = NULL;
@@ -54,77 +47,59 @@ class PermissionsGroupController extends AdminController
         $name = $request->get('name');
         $role = new PermissionsGroup();
         $info = $role->getPermissionGroupSearch($name);
-        $datatable = Datatables::of($info)->setTotalRecords(sizeof($info));
-        $datatable->editColumn('status', function ($row) {
-            $data['id'] = $row->id;
-            $data['status'] = $row->status;
-            return view('admin.' . $this->path . '.parts.status', $data)->render();
-        });
-        $path = $this->path;
-
-        $datatable->editColumn('parent_id', function ($row) {
-            $record = PermissionsGroup::find($row->parent_id);
-            if($record){
-
-                return '<div class="badge badge-warning fw-bold">' . $record->name_ar . '</div>';          
-            }else{
-                return '<div class="badge badge-danger fw-bold">لايوجد</div>';          
-               
-            }
-        });
-        $datatable->addColumn('actions', function ($row) use ($path) {
-            $data['active_menu'] = $path;
-            $data['id'] = $row->id;
-            return view('admin.' . $this->path . '.parts.actions', $data)->render();
-        });
-        $datatable->escapeColumns(['*']);
-        return $datatable->addIndexColumn()->make(true);
+        return Datatables::of($info)
+            ->editColumn('status', function ($row) {
+                $data['id'] = $row->id;
+                $data['status'] = $row->status;
+                return view('admin.' . $this->path . '.parts.status', $data)->render();
+            })
+            ->editColumn('parent_id', function ($row) {
+                $record = PermissionsGroup::find($row->parent_id);
+                if ($record) {
+                    return '<div class="badge badge-warning fw-bold">' . $record->name_ar . '</div>';
+                } else {
+                    return '<div class="badge badge-danger fw-bold">لايوجد</div>';
+                }
+            })
+            ->addColumn('actions', function ($row) {
+                $data['active_menu'] = $this->path;
+                $data['id'] = $row->id;
+                return view('admin.' . $this->path . '.parts.actions', $data)->render();
+            })
+            ->rawColumns(['status', 'parent_id', 'actions'])
+            ->addIndexColumn()
+            ->make(true);
     }
-
     //////////////////////////////////////////////
+
     public function postAdd(Request $request)
     {
-        $name = $request->get('name');
-        $name_ar = $request->get('name_ar');
-        $name_en = $request->get('name_en');
-        $icon = $request->get('icon');
-        $sort = (int)$request->get('sort');
-        $status = (int)$request->get('status');
-        $parent_id = (int)$request->get('parent_id');
+        $data['status'] = $request->has('status') && $request->input('status') === '1' ? 1 : 0;
 
-        $validator = Validator::make([
-            'name' => $name,
-            'status' => $status,
-            'name_ar' => $name_ar,
-            'name_en' => $name_en,
-            'icon' => $icon,
-            'sort' => $sort,
-            'parent_id' => $parent_id,
-        ], [
-            'name' => 'required',
-            'name_ar' => 'required',
-            'name_en' => 'required',
-            // 'icon' => 'required',
-            'status' => 'required|numeric|in:0,1',
+        $validatedData = $request->validate([
+            'name' => 'required|string|unique:permissions_group,name',
+            'name_ar' => 'required|string',
+            'name_en' => 'required|string',
+            'color' => [
+                'required',
+                'string',
+                Rule::in(['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark'])
+            ],
+            'icon' => 'nullable|string',
             'sort' => 'required|numeric',
-            'parent_id' => 'required|numeric',
+            'status' => 'numeric|in:0,1',
+            'parent_id' => 'required|numeric'
         ]);
-        //////////////////////////////////////////////////////////
-        if ($validator->fails()) {
-            $request->session()->flash('danger', $validator->messages());
-            // $firstError = $validator->errors()->first();
-            return redirect(route($this->path . '.add'))->withInput();
+
+        $validatedData['guard_name'] = 'web';
+
+        $permissionsGroup = PermissionsGroup::create($validatedData);
+
+        if ($permissionsGroup) {
+            Cache::forget('spatie.permission.cache');
+            return redirect(route($this->path . '.view'))->with('success', self::INSERT_SUCCESS_MESSAGE);
         } else {
-            $user = new PermissionsGroup();
-            $add = $user->addPermissionsGroup($name, $name_ar, $name_en, $icon, $sort, $status, $parent_id);
-            if ($add) {
-                Cache::forget('spatie.permission.cache');
-                $request->session()->flash('success', self::INSERT_SUCCESS_MESSAGE);
-                return redirect(route($this->path . '.view'));
-            } else {
-                $request->session()->flash('danger', self::EXECUTION_ERROR);
-                return redirect(route($this->path . '.add'))->withInput();
-            }
+            return redirect(route($this->path . '.add'))->withInput()->with('danger', self::EXECUTION_ERROR);
         }
     }
     //////////////////////////////////////////////
@@ -139,7 +114,7 @@ class PermissionsGroupController extends AdminController
         $user = new PermissionsGroup();
         $info = $user->getPermissionsGroup($id);
         if ($info) {
-            parent::$data['permissions'] =  $user->getAllPermissionGroupSearch($name=null);
+            parent::$data['permissions'] =  $user->getAllPermissionGroupSearch($name = null);
             parent::$data['info'] = $info;
             return view('admin.' . $this->path . '.add', parent::$data);
         } else {
@@ -151,59 +126,35 @@ class PermissionsGroupController extends AdminController
     public function postEdit(Request $request, $id)
     {
         try {
-            $encrypted_id = $id;
-            $id = Crypt::decrypt($id);
+            $decryptedId = Crypt::decrypt($id);
         } catch (DecryptException $e) {
             $request->session()->flash('danger', self::NOT_FOUND);
             return redirect(route($this->path . '.view'));
         }
 
-        $user = new PermissionsGroup();
-        $info = $user->getPermissionsGroup($id);
-        if ($info) {
-            $name = $request->get('name');
-            $name_ar = $request->get('name_ar');
-            $name_en = $request->get('name_en');
-            $icon = $request->get('icon');
-            $sort = (int)$request->get('sort');
-            $status = (int)$request->get('status');
-            $parent_id = (int)$request->get('parent_id');
+        $permissionsGroup = PermissionsGroup::findOrFail($decryptedId);
+        $data['status'] = $request->has('status') && $request->input('status') === '1' ? 1 : 0;
 
-            $validator = Validator::make([
-                'name' => $name,
-                'status' => $status,
-                'name_ar' => $name_ar,
-                'name_en' => $name_en,
-                'icon' => $icon,
-                'sort' => $sort,
-                'parent_id' => $parent_id
-            ], [
-                'name' => 'required',
-                'name_ar' => 'required',
-                'name_en' => 'required',
-                // 'icon' => 'required',
-                'status' => 'required|numeric|in:0,1',
-                'sort' => 'required|numeric',
-                'parent_id' => 'required|numeric'
-            ]);
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255|unique:permissions_group,name,' . $permissionsGroup->id,
+            'name_ar' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
+            'color' => 'required|string|alpha',
+            'icon' => 'nullable|string',
+            'sort' => 'required|numeric',
+            'status' => 'numeric|in:0,1',
+            'parent_id' => 'required|numeric',
+        ]);
 
-            if ($validator->fails()) {
-                $request->session()->flash('danger', $validator->messages());
-                return redirect(route($this->path . '.edit', ['id' => $encrypted_id]))->withInput();
-            } else {
-                $update = $user->updatePermissionsGroup($info, $name, $name_ar, $name_en, $icon, $sort, $status, $parent_id);
-                if ($update) {
-                    Cache::forget('spatie.permission.cache');
-                    $request->session()->flash('success', self::UPDATE_SUCCESS);
-                    return redirect(route($this->path . '.view'));
-                } else {
-                    $request->session()->flash('danger', self::EXECUTION_ERROR);
-                    return redirect(route($this->path . '.edit', ['id' => $encrypted_id]))->withInput();
-                }
-            }
-        } else {
-            $request->session()->flash('danger', self::NOT_FOUND);
+        $update = $permissionsGroup->update($validatedData);
+
+        if ($update) {
+            Cache::forget('spatie.permission.cache');
+            $request->session()->flash('success', self::UPDATE_SUCCESS);
             return redirect(route($this->path . '.view'));
+        } else {
+            $request->session()->flash('danger', self::EXECUTION_ERROR);
+            return redirect(route($this->path . '.edit', ['id' => $id]))->withInput();
         }
     }
     //////////////////////////////////////////////

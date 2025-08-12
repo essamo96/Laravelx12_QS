@@ -12,7 +12,8 @@ use Illuminate\Contracts\Encryption\DecryptException;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Cache;
 
-class RolesController extends AdminController {
+class RolesController extends AdminController
+{
 
     const INSERT_SUCCESS_MESSAGE = "نجاح، تم الإضافة بتجاح";
     const UPDATE_SUCCESS = "نجاح، تم التعديل بنجاح";
@@ -27,78 +28,86 @@ class RolesController extends AdminController {
 
     //////////////////////////////////////////////
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         parent::$data['active_menu'] = 'roles';
         $this->path = 'roles';
     }
 
     //////////////////////////////////////////////
-    public function getIndex() {
+    public function getIndex()
+    {
         return view('admin.' . $this->path . '.view', parent::$data);
     }
+    //////////////////////////////////////////////
 
-    public function getList(Request $request) {
+    public function getList(Request $request)
+    {
         $name = $request->get('name');
         $role = new Role();
-        $info = $role->getRoles($name);
-        $datatable = Datatables::of($info)->setTotalRecords(sizeof($info));
-        $datatable->editColumn('status', function ($row) {
-            $data['id'] = $row->id;
-            $data['status'] = $row->status;
-            return view('admin.' . $this->path . '.parts.status', $data)->render();
-        });
-        $path = $this->path;
-        $datatable->addColumn('actions', function ($row) use ($path) {
-            $data['active_menu'] = $path;
-            $data['id'] = $row->id;
-            return view('admin.' . $this->path . '.parts.actions', $data)->render();
-        });
-        $datatable->escapeColumns(['*']);
-        return $datatable->addIndexColumn()->make(true);
+        $roles = $role->getRoles($name);
+
+        return Datatables::of($roles)
+            ->editColumn('status', function ($role) {
+                $data['id'] = $role->id;
+                $data['status'] = $role->status;
+                return view('admin.' . $this->path . '.parts.status', $data)->render();
+            })
+            ->addColumn('actions', function ($role) {
+                $data['active_menu'] = $this->path;
+                $data['id'] = $role->id;
+                return view('admin.' . $this->path . '.parts.actions', $data)->render();
+            })
+            ->rawColumns(['status', 'actions'])
+            ->addIndexColumn()
+            ->make(true);
     }
 
     //////////////////////////////////////////////
-    public function getAdd(Request $request) {
+    public function getAdd()
+    {
         parent::$data['info'] = NULL;
         return view('admin.' . $this->path . '.add', parent::$data);
     }
 
     //////////////////////////////////////////////
-    public function postAdd(Request $request) {
-        $name = $request->get('name');
-        $is_user = $request->get('is_user');
-        $status = $request->has('status') && $request->input('status') === '1' ? 1 : 0;
-        $validator = Validator::make([
-            'name' => $name,
-            'is_user' => $is_user,
-            'status' => $status
-        ], [
-            'name' => 'required',
-            'status' => 'required|numeric|in:0,1',
-            // 'is_user' => 'required|numeric|in:0,1'
+    public function postAdd(Request $request)
+    {
+        $data = $request->only('name', 'status', 'is_user');
+
+        $data['status'] = $request->has('status') && $request->input('status') === '1' ? 1 : 0;
+        $data['is_user'] = $request->has('is_user') && $request->input('is_user') === '1' ? 1 : 0;
+
+        $data['guard_name'] = 'admin';
+
+        $validator = Validator::make($data, [
+            'name' => 'required|unique:roles,name',
+            'status' => 'in:0,1',
+            'is_user' => 'in:0,1',
         ]);
 
         if ($validator->fails()) {
             $request->session()->flash('danger', $validator->messages());
             return redirect(route($this->path . '.add'))->withInput();
-        } else {
-            $role = new Role();
-            $add = $role->addRole($name, $status,$is_user);
+        }
 
-            if ($add) {
-                Cache::forget('spatie.permission.cache');
-                $request->session()->flash('success', self::INSERT_SUCCESS_MESSAGE);
-                return redirect(route($this->path . '.view'));
-            } else {
-                $request->session()->flash('danger', self::EXECUTION_ERROR);
-                return redirect(route($this->path . '.add'))->withInput();
-            }
+        // استخدام طريقة create() لإنشاء سجل جديد
+        $role = Role::create($data);
+
+        if ($role) {
+            Cache::forget('spatie.permission.cache');
+            $request->session()->flash('success', self::INSERT_SUCCESS_MESSAGE);
+            return redirect(route($this->path . '.view'));
+        } else {
+            $request->session()->flash('danger', self::EXECUTION_ERROR);
+            return redirect(route($this->path . '.add'))->withInput();
         }
     }
 
     //////////////////////////////////////////////
-    public function getEdit(Request $request, $id) {
+    public function getEdit(Request $request, $id)
+    {
         try {
             $id = Crypt::decrypt($id);
         } catch (DecryptException $e) {
@@ -120,58 +129,55 @@ class RolesController extends AdminController {
             return redirect(route($this->path . '.view'));
         }
     }
-
     //////////////////////////////////////////////
-    public function postEdit(Request $request, $id) {
+
+    public function postEdit(Request $request, $id)
+    {
         try {
-            $encrypted_id = $id;
-            $id = Crypt::decrypt($id);
+            $decryptedId = Crypt::decrypt($id);
         } catch (DecryptException $e) {
             $request->session()->flash('danger', self::NOT_FOUND);
             return redirect(route($this->path . '.view'));
         }
-        if ($id == 1) {
+
+        $role = Role::findOrFail($decryptedId);
+
+        if ($role->id == 1) {
             $request->session()->flash('danger', self::NOT_FOUND);
             return redirect(route($this->path . '.view'));
         }
 
-        $role = new Role();
-        $info = $role->getRole($id);
-        if ($info) {
-            $name = $request->get('name');
-            $is_user = $request->get('is_user');
-            $status = $request->has('status') && $request->input('status') === '1' ? 1 : 0;
-            $validator = Validator::make([
-                'name' => $name,
-                'is_user' => $is_user,
-                'status' => $status
-            ], [
-                'name' => 'required',
-                'status' => 'required|numeric|in:0,1',
-                // 'is_user' => 'required|numeric|in:0,1'
-            ]);
-            if ($validator->fails()) {
-                $request->session()->flash('danger', $validator->messages());
-                return redirect(route($this->path . '.edit', ['id' => $encrypted_id]))->withInput();
-            } else {
-                $update = $role->updateRole($info, $name, $status,$is_user);
-                if ($update) {
-                    Cache::forget('spatie.permission.cache');
-                    $request->session()->flash('success', self::UPDATE_SUCCESS);
-                    return redirect(route($this->path . '.view'));
-                } else {
-                    $request->session()->flash('danger', self::EXECUTION_ERROR);
-                    return redirect(route($this->path . '.edit', ['id' => $encrypted_id]))->withInput();
-                }
-            }
-        } else {
-            $request->session()->flash('danger', self::NOT_FOUND);
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:roles,name,' . $role->id,
+            'is_user' => 'nullable|numeric|in:0,1',
+            'status' => 'nullable|numeric|in:0,1',
+        ]);
+
+        if ($validator->fails()) {
+            $request->session()->flash('danger', $validator->messages());
+            return redirect(route($this->path . '.edit', ['id' => $id]))->withInput();
+        }
+
+        $validatedData = $validator->validated();
+
+        $validatedData['status'] = $request->has('status') ? 1 : 0;
+        $validatedData['is_user'] = $request->has('is_user') ? 1 : 0;
+
+        $update = $role->update($validatedData);
+
+        if ($update) {
+            Cache::forget('spatie.permission.cache');
+            $request->session()->flash('success', self::UPDATE_SUCCESS);
             return redirect(route($this->path . '.view'));
+        } else {
+            $request->session()->flash('danger', self::EXECUTION_ERROR);
+            return redirect(route($this->path . '.edit', ['id' => $id]))->withInput();
         }
     }
 
     //////////////////////////////////////////////
-    public function getPermissions(Request $request, $id) {
+    public function getPermissions(Request $request, $id)
+    {
         try {
             $id = Crypt::decrypt($id);
         } catch (DecryptException $e) {
@@ -195,7 +201,8 @@ class RolesController extends AdminController {
     }
 
     //////////////////////////////////////////////
-    public function postPermissions(Request $request, $id) {
+    public function postPermissions(Request $request, $id)
+    {
         try {
             $id = Crypt::decrypt($id);
         } catch (DecryptException $e) {
@@ -225,7 +232,8 @@ class RolesController extends AdminController {
     }
 
     //////////////////////////////////////////////
-    public function postStatus(Request $request) {
+    public function postStatus(Request $request)
+    {
         $id = $request->get('id');
         try {
             $id = Crypt::decrypt($id);
@@ -259,33 +267,28 @@ class RolesController extends AdminController {
             return response()->json(['status' => 'error', 'message' => self::NOT_FOUND]);
         }
     }
-
     //////////////////////////////////////////////
-    public function postDelete(Request $request) {
-        $id = $request->get('id');
-        try {
-            $id = Crypt::decrypt($id);
-        } catch (DecryptException $e) {
-            return response()->json(['status' => 'error', 'message' => 'Error Decode']);
-        }
 
-        if ($id == 1) {
-            $request->session()->flash('danger', self::NOT_FOUND);
-            return response()->json(['status' => 'error', 'message' => 'Error, Data not found']);
+    public function postDelete(Request $request)
+    {
+        try {
+            $decryptedId = Crypt::decrypt($request->input('id'));
+        } catch (DecryptException $e) {
+            return response()->json(['status' => 'error', 'message' => 'Error, invalid ID format.']);
         }
-        $roles = new Role();
-        $info = $roles->getRole($id);
-        if ($info) {
-            $delete = $roles->deleteRole($info);
-            if ($delete) {
-                Cache::forget('spatie.permission.cache');
-                return response()->json(['status' => 'success', 'message' => self::DELETE_SUCCESS]);
-            } else {
-                return response()->json(['status' => 'error', 'message' => self::EXECUTION_ERROR]);
-            }
-        } else {
+        try {
+            $role = Role::findOrFail($decryptedId);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['status' => 'error', 'message' => self::NOT_FOUND]);
         }
+        if ($role->id == 1) {
+            return response()->json(['status' => 'error', 'message' => 'Cannot delete the main administrator role.']);
+        }
+        if ($role->delete()) {
+            Cache::forget('spatie.permission.cache');
+            return response()->json(['status' => 'success', 'message' => self::DELETE_SUCCESS]);
+        } else {
+            return response()->json(['status' => 'error', 'message' => self::EXECUTION_ERROR]);
+        }
     }
-
 }

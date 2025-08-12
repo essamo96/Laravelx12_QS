@@ -799,8 +799,11 @@
                                 <!--begin::Username-->
                                 <div class="d-flex flex-column">
                                     <div class="fw-bold d-flex align-items-center fs-5">{{ Auth::user()->name }}
-                                        <span
-                                            class="badge badge-light-success fw-bold fs-8 px-2 py-1 ms-2">{{ Auth::user()->role->name }}</span>
+                                        @if(Auth::user()->roles->isNotEmpty())
+                                            <span class="badge badge-light-success fw-bold fs-8 px-2 py-1 ms-2">
+                                                {{ Auth::user()->roles->first()->name }}
+                                            </span>
+                                        @endif
                                     </div>
                                     <a href="#"
                                         class="fw-semibold text-muted text-hover-primary fs-7">{{ Auth::user()->email }}</a>

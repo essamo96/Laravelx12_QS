@@ -2,7 +2,7 @@
     <a class="menu-link {{ $active_menu == ($item->name ?? '') ? 'here show' : '' }}" href="{{ route(($item->name ?? '') . '.view') }}">
         <span class="menu-icon">
             <span class="svg-icon svg-icon-2">
-                <i class="bi {{ $item->icon ?? '' }} fs-1 {{ $color }}"></i>
+                <i class="bi {{ $item->icon ?? '' }} fs-1 text-{{  $item->color }}"></i>
             </span>
         </span>
         <span class="menu-title" style="color:white">
