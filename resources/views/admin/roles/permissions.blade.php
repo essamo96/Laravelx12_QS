@@ -28,7 +28,7 @@
                                             <button class="accordion-button fs-4 fw-bold px-5 py-4 collapsed" type="button"
                                                 data-bs-toggle="collapse" data-bs-target="#collapse_{{ $group->id }}"
                                                 aria-expanded="false" aria-controls="collapse_{{ $group->id }}">
-                                                <i class="{{ $group->icon ?? 'bi bi-diagram-3' }} fs-2 text-{{ $group->color ?? 'warning' }} me-3"></i>
+                                                <i class="{{ $group->icon ?? 'bi bi-diagram-3' }} fs-2 text-{{ $group->color ?? 'dark' }} me-3"></i>
                                                 {{ $group->{'name_' . trans('app.lang')} }}
                                             </button>
                                         </h2>
@@ -49,7 +49,7 @@
                                                 <div class="row">
                                                     @foreach($group->permissions as $perm)
                                                         <div class="col-md-4 col-sm-6 mb-3">
-                                                            <div class="form-check form-check-custom form-check-{{ $group->color ?? 'warning' }} form-check-solid">
+                                                            <div class="form-check form-check-custom form-check-{{ $group->color ?? 'dark' }} form-check-solid">
                                                                 <input class="form-check-input group-perm-{{ $group->id }}"
                                                                     type="checkbox" name="permissions[]"
                                                                     id="perm_{{ $perm->id }}"

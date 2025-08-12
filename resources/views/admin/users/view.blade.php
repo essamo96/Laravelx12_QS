@@ -22,7 +22,7 @@
                                 </i>
                                 <input type="text" id="generalSearch" value="{{ old('name') }}"
                                     class="form-control form-control-solid w-250px ps-13 generalSearch"
-                                    placeholder=" @lang('app.search') " />
+                                    placeholder="@lang('app.search')" />
                             </div>
                         </div>
                         <div class="card-toolbar">
@@ -40,12 +40,11 @@
                             <thead>
                                 <tr class="fw-semibold fs-6 text-muted">
                                     <th>#</th>
-                                    <th>@lang('app.id')</th>
-                                    <th>@lang('app.name') </th>
-                                    <th>@lang('app.name_ar')</th>
-                                    <th> @lang('app.name_en')</th>
-                                    <th> @lang('app.parent')</th>
-                                    <th> @lang('app.sort')</th>
+                                    <th>@lang('app.name')</th>
+                                    <th>@lang('app.username')</th>
+                                    <th> @lang('app.group')</th>
+                                    <th>@lang('app.updated_at')</th>
+                                    <th>@lang('app.created_by')</th>
                                     <th>@lang('app.status')</th>
                                     <th>@lang('app.actions')</th>
                                 </tr>
@@ -57,7 +56,8 @@
             </div>
         </div>
     </div>
-    @include('admin.' . $active_menu . '.parts.modal')
+    {{-- @include('admin.admins.parts.modal') --}}
+
 @stop
 @section('js')
     <script>
@@ -69,7 +69,7 @@
                 "bFilter": false,
                 serverSide: true,
                 ajax: {
-                    url: "<?= route($active_menu . '.list') ?>",
+                    url: dataTableAjaxUrl,
                     data: function(d) {
                         d.name = $('#generalSearch').val();
                     }
@@ -78,22 +78,19 @@
                         data: 'DT_RowIndex'
                     },
                     {
-                        data: 'id'
-                    },
-                    {
                         data: 'name'
                     },
                     {
-                        data: 'name_ar'
+                        data: 'username'
                     },
                     {
-                        data: 'name_en'
+                        data: 'role_id'
                     },
                     {
-                        data: 'parent_id'
+                        data: 'updated_at'
                     },
                     {
-                        data: 'sort'
+                        data: 'created_by'
                     },
                     {
                         data: 'status'
@@ -106,20 +103,21 @@
                 language: {
                     url: dataTableLanguageUrl
                 },
+
                 "createdRow": function(row, data, dataIndex) {
                     $(row).find('td:eq(1)').addClass('d-flex align-items-center');
                 }
             });
+            @include('admin.layout.masterLayouts.delete')
+            @include('admin.layout.masterLayouts.status')
             $('.generalSearch').on('input', function() {
                 table.ajax.reload();
             });
-            @include('admin.layout.masterLayouts.delete')
-            @include('admin.layout.masterLayouts.status')
+
         });
     </script>
     <script>
         const dataTableLanguageUrl = "{{ route('datatables.lang', ['locale' => app()->getLocale()]) }}";
         const dataTableAjaxUrl = "{{ route($active_menu . '.list') }}";
     </script>
-
 @stop

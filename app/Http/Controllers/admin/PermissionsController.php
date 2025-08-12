@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use Route;
-use App\Models\Permissions;
-use App\Models\PermissionsGroup;
 use App\Models\Roles;
+use App\Models\Permission;
 use Illuminate\Http\Request;
+use App\Models\PermissionsGroup;
 use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Cache;
 
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\Admin\PermissionRequest;
 use Illuminate\Contracts\Encryption\DecryptException;
 
 class permissionsController extends AdminController
@@ -60,8 +61,8 @@ class permissionsController extends AdminController
     public function getList(Request $request)
     {
         $name = $request->get('name');
-        $Permissions = new Permissions();
-        $info = $Permissions->getAllPermissions($name);
+        $Permission = new Permission();
+        $info = $Permission->getAllPermissions($name);
         $datatable = Datatables::of($info)->setTotalRecords(sizeof($info));
         $path = $this->path;
         $datatable->editColumn('group_id', function ($row) {
@@ -83,38 +84,25 @@ class permissionsController extends AdminController
         return $datatable->addIndexColumn()->make(true);
     }
     //////////////////////////////////////////////
-    public function postAdd(Request $request)
+    public function postAdd(PermissionRequest $request)
     {
-        $name = $request->get('name');
-        $guard_name = $request->get('guard_name');
-        $group_id = (int)$request->get('group_id');
+        try {
+            // يتم التحقق من البيانات تلقائياً عبر PermissionRequest.
+            // إذا فشل التحقق، سيعود المستخدم تلقائياً إلى النموذج.
 
-        $validator = Validator::make([
-            'name' => $name,
-            'guard_name' => $guard_name,
-            'group_id' => $group_id,
-        ], [
-            'name' => 'required|unique:permissions',
-            'guard_name' => 'required',
-            'group_id' => 'required|numeric',
-        ]);
-        //////////////////////////////////////////////////////////
-        if ($validator->fails()) {
-            $request->session()->flash('danger', $validator->messages());
-            $firstError = $validator->errors()->first();
-            return redirect(route($this->path . '.add'))->withInput();
-        } else {
-            $user = new Permissions();
-            $add = $user->addPermission($name, $group_id, $guard_name);
-            if ($add) {
-                Cache::forget('spatie.permission.cache');
-                $request->session()->flash('success', self::INSERT_SUCCESS_MESSAGE);
-                return redirect(route($this->path . '.add'));
-            } else {
-                $request->session()->flash('danger', self::EXECUTION_ERROR);
-                return redirect(route($this->path . '.add'))->withInput();
-            }
+            // إنشاء الصلاحية الجديدة باستخدام البيانات المتحقق منها.
+            Permission::create($request->validated());
+
+            // مسح الكاش بعد الإضافة.
+            Cache::forget('spatie.permission.cache');
+
+            $request->session()->flash('success', "نجاح، تم الإضافة بنجاح");
+        } catch (\Exception $e) {
+            $request->session()->flash('danger', self::EXECUTION_ERROR);
+            return redirect()->back()->withInput();
         }
+
+        return redirect(route($this->path . '.view'));
     }
     //////////////////////////////////////////////
     public function getEdit(Request $request, $id)
@@ -125,9 +113,9 @@ class permissionsController extends AdminController
             $request->session()->flash('danger', self::NOT_FOUND);
             return redirect(route($this->path . '.view'));
         }
-        $Permissions = new Permissions();
+        $Permission = new Permission();
         $obj = new PermissionsGroup();
-        $info = $Permissions->getPermissions($id);
+        $info = $Permission->getPermissions($id);
         if ($info) {
             parent::$data['permissions'] = $obj->getAllPermissionGroup();
             $guards = config('auth.guards');
@@ -145,51 +133,28 @@ class permissionsController extends AdminController
         }
     }
     //////////////////////////////////////////////
-    public function postEdit(Request $request, $id)
+    public function postEdit(PermissionRequest $request, $id)
     {
         try {
-            $encrypted_id = $id;
-            $id = Crypt::decrypt($id);
+            $decryptedId = Crypt::decrypt($id);
+            $permission = Permission::findOrFail($decryptedId);
+
+            // يتم التحقق من البيانات تلقائياً عبر PermissionRequest.
+            $permissionData = $request->validated();
+
+            // تحديث الصلاحية.
+            $permission->update($permissionData);
+
+            Cache::forget('spatie.permission.cache');
+
+            $request->session()->flash('success', "نجاح، تم التعديل بنجاح");
         } catch (DecryptException $e) {
             $request->session()->flash('danger', self::NOT_FOUND);
-            return redirect(route($this->path . '.view'));
+        } catch (\Exception $e) {
+            $request->session()->flash('danger', self::EXECUTION_ERROR);
         }
 
-        $user = new Permissions();
-        $info = $user->getPermissions($id);
-        if ($info) {
-            $name = $request->get('name');
-            $guard_name = $request->get('guard_name');
-            $group_id = (int)$request->get('group_id');
-
-            $validator = Validator::make([
-                'name' => $name,
-                'guard_name' => $guard_name,
-                'group_id' => $group_id,
-            ], [
-                'name' => 'required|unique:permissions',
-                'guard_name' => 'required',
-                'group_id' => 'required|numeric',
-            ]);
-
-            if ($validator->fails()) {
-                $request->session()->flash('danger', $validator->messages());
-                return redirect(route($this->path . '.edit', ['id' => $encrypted_id]))->withInput();
-            } else {
-                $update = $user->updatePermission($info, $name, $group_id, $guard_name);
-                if ($update) {
-                    Cache::forget('spatie.permission.cache');
-                    $request->session()->flash('success', self::UPDATE_SUCCESS);
-                    return redirect(route($this->path . '.view'));
-                } else {
-                    $request->session()->flash('danger', self::EXECUTION_ERROR);
-                    return redirect(route($this->path . '.edit', ['id' => $encrypted_id]))->withInput();
-                }
-            }
-        } else {
-            $request->session()->flash('danger', self::NOT_FOUND);
-            return redirect(route($this->path . '.view'));
-        }
+        return redirect(route($this->path . '.view'));
     }
 
 
@@ -203,7 +168,7 @@ class permissionsController extends AdminController
         } catch (DecryptException $e) {
             return response()->json(['status' => 'error', 'message' => 'Error Decode']);
         }
-        $permissions = new Permissions();
+        $permissions = new Permission();
         $info = $permissions->getPermissions($id);
         if ($info) {
             $delete = $permissions->deletePermission($info);

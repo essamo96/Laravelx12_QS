@@ -2,12 +2,7 @@
 @section('title')
     {{ $current_route->{'name_' . trans('app.lang')} }}
 @stop
-@section('page-breadcrumb')
-    <li class="breadcrumb-item text-muted">
-        <a href="{{ url('/') }}" class="text-muted text-hover-primary">@lang('app.home')</a>
-    </li>
-    <li class="breadcrumb-item text-muted">- {{ $current_route->{'name_' . trans('app.lang')} }}</li>
-@stop
+
 @section('page-content')
     <div class="app-main flex-column flex-row-fluid" id="kt_app_main">
         <div id="kt_app_content" class="app-content flex-column-fluid">
@@ -22,7 +17,7 @@
                                 </i>
                                 <input type="text" id="generalSearch" value="{{ old('name') }}"
                                     class="form-control form-control-solid w-250px ps-13 generalSearch"
-                                    placeholder=" @lang('app.search') " />
+                                    placeholder="@lang('app.search')" />
                             </div>
                         </div>
                         <div class="card-toolbar">
@@ -40,13 +35,9 @@
                             <thead>
                                 <tr class="fw-semibold fs-6 text-muted">
                                     <th>#</th>
-                                    <th>@lang('app.id')</th>
                                     <th>@lang('app.name') </th>
-                                    <th>@lang('app.name_ar')</th>
-                                    <th> @lang('app.name_en')</th>
-                                    <th> @lang('app.parent')</th>
-                                    <th> @lang('app.sort')</th>
-                                    <th>@lang('app.status')</th>
+                                    <th>@lang('app.group')</th>
+                                    <th>@lang('app.guard_name')</th>
                                     <th>@lang('app.actions')</th>
                                 </tr>
                             </thead>
@@ -78,25 +69,12 @@
                         data: 'DT_RowIndex'
                     },
                     {
-                        data: 'id'
-                    },
-                    {
                         data: 'name'
+                    }, {
+                        data: 'group_id'
                     },
                     {
-                        data: 'name_ar'
-                    },
-                    {
-                        data: 'name_en'
-                    },
-                    {
-                        data: 'parent_id'
-                    },
-                    {
-                        data: 'sort'
-                    },
-                    {
-                        data: 'status'
+                        data: 'guard_name'
                     },
                     {
                         data: 'actions',
@@ -105,21 +83,16 @@
                 ],
                 language: {
                     url: dataTableLanguageUrl
-                },
-                "createdRow": function(row, data, dataIndex) {
-                    $(row).find('td:eq(1)').addClass('d-flex align-items-center');
                 }
             });
             $('.generalSearch').on('input', function() {
                 table.ajax.reload();
             });
             @include('admin.layout.masterLayouts.delete')
-            @include('admin.layout.masterLayouts.status')
         });
     </script>
-    <script>
+        <script>
         const dataTableLanguageUrl = "{{ route('datatables.lang', ['locale' => app()->getLocale()]) }}";
         const dataTableAjaxUrl = "{{ route($active_menu . '.list') }}";
     </script>
-
 @stop

@@ -23,7 +23,7 @@
             <div class="bg-body d-flex flex-column flex-center rounded-4 w-md-600px p-10">
                 <div class="d-flex flex-center flex-column align-items-stretch h-lg-100 w-md-400px">
                     <div class="d-flex flex-center flex-column flex-column-fluid pb-15 pb-lg-20">
-                        <form method="POST" action="{{ route('login') }}" class="form w-100" id="kt_sign_in_form">
+                        <form method="post" action="" class="form w-100" id="kt_sign_in_form">
                             @csrf
 
                             {{-- رسالة الخطأ العامة --}}
@@ -79,7 +79,7 @@
                             <div class="fv-row mb-8">
                                 <input type="text" name="username" placeholder="Email or Username"
                                     class="form-control bg-transparent @error('username') is-invalid @enderror"
-                                    value="{{ old('username') }}" required autofocus>
+                                    value="{{ old('username') }}"  autofocus>
 
                                 @error('username')
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -89,7 +89,7 @@
                             {{-- حقل كلمة المرور --}}
                             <div class="fv-row mb-3">
                                 <input type="password" name="password" placeholder="Password"
-                                    class="form-control bg-transparent @error('password') is-invalid @enderror" required
+                                    class="form-control bg-transparent @error('password') is-invalid @enderror"
                                     autocomplete="current-password">
 
                                 @error('password')

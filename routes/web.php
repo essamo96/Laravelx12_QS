@@ -9,20 +9,12 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// إعادة توجيه /admin
 Route::get('/admin', function () {
-    if (Auth::guard('admin')->check()) {
-        return redirect()->route('dashboard.view');
-    }
-    return redirect()->route('login'); // admin.login
+    return redirect()->route('dashboard.view');
 });
 
 // تسجيل دخول المشرفين
-Route::group([
-    'namespace' => 'App\Http\Controllers\Admin',
-    'prefix' => 'admin',
-    'middleware' => ['guest:admin']
-], function () {
+Route::group(['namespace' => 'App\Http\Controllers\Admin', 'prefix' => 'admin', 'middleware' => ['guest:admin']], function () {
     Route::get('login', ['as' => 'login', 'uses' => 'LoginController@getIndex']);
     Route::post('login', ['as' => 'login.post', 'uses' => 'LoginController@postIndex']);
 });
@@ -60,6 +52,9 @@ Route::group([
 
     // Roles Route
     require __DIR__ . '/roles.php';
+
+    // Users Route
+    require __DIR__ . '/users.php';
 
     // Permissions Route
     require __DIR__ . '/permissions.php';
