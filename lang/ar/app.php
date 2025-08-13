@@ -1,12 +1,22 @@
 <?php
 
 return [
+    'insert_success'     => 'نجاح، تم الإضافة بنجاح',
+    'update_success'     => 'نجاح، تم التعديل بنجاح',
+    'delete_success'     => 'نجاح، تم الحذف بنجاح',
+    'password_success'   => 'نجاح، تم تغيير كلمة المرور بنجاح',
+    'execution_error'    => 'عذراً، حدث خطأ أثناء تنفيذ العملية',
+    'not_found'          => 'عذراً، لا يمكن العثور على البيانات',
+    'activation_success' => 'نجاح، تم التفعيل بنجاح',
+    'disable_success'    => 'نجاح، تم التعطيل بنجاح',
+
     'lang' => 'ar',
     'dir' => 'rtl',
     'float-left' => 'left',
     'float-right' => 'right',
     'add' => 'إضافة',
     'home' => 'الرئيسية',
+    'system' => 'النظام',
     'disable' => 'معطل',
     'enable' => 'مفعل',
     'permission' => 'الصلاحيات',

@@ -35,10 +35,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
         ];
     }
-public function role()
-{
-    return $this->belongsToMany(Role::class);
-}
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
     // علاقة بالمستخدم الذي أنشأ الحساب
     public function creator()
     {
@@ -115,6 +115,15 @@ public function role()
     // جلب كل المستخدمين الغير محذوفين
     public function getUsers()
     {
+        return $this->whereNull('deleted_at')->get();
+    }
+    ////////////////////////////////
+    // جلب كل المستخدمين حسب الفلاتر
+    public function getSearchUsers($name)
+    {
+        return self::when($name, function ($query) use ($name) {
+            $query->where('name', 'LIKE', '%' . $name . '%');
+        })->get();
         return $this->whereNull('deleted_at')->get();
     }
 }

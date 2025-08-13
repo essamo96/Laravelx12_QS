@@ -56,7 +56,7 @@
             </div>
         </div>
     </div>
-    {{-- @include('admin.admins.parts.modal') --}}
+    @include('admin.' . $active_menu . '.parts.modal')
 
 @stop
 @section('js')

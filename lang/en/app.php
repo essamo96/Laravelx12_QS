@@ -1,6 +1,15 @@
 <?php
 
 return [
+    'insert_success'     => 'Success, added successfully',
+    'update_success'     => 'Success, updated successfully',
+    'delete_success'     => 'Success, deleted successfully',
+    'password_success'   => 'Success, password changed successfully',
+    'execution_error'    => 'Sorry, an error occurred while processing the request',
+    'not_found'          => 'Sorry, the requested data could not be found',
+    'activation_success' => 'Success, activated successfully',
+    'disable_success'    => 'Success, disabled successfully',
+
     'lang' => 'en',
     'dir' => 'ltr',
     'float-left' => 'right',
@@ -28,6 +37,7 @@ return [
     'name' => 'Name',
     'status' => 'Status',
     'actions' => 'Actions',
+    'system' => 'System',
     'do' => 'Do',
     'password' => 'Password',
     'password_new' => 'New Password',

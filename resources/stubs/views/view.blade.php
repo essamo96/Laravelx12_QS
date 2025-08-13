@@ -50,7 +50,7 @@
             </div>
         </div>
     </div>
-    @include('admin.layout.modal')
+    @include('admin.' . $active_menu . '.parts.modal')
 @stop
 @section('js')
     <script>
