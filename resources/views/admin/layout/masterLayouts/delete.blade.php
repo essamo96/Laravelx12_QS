@@ -1,4 +1,4 @@
- $('#confirm').on('show.bs.modal', function (e) {
+$('#confirm').on('show.bs.modal', function (e) {
      var link = $(e.relatedTarget);
      var href = link.data('href');
      var year = link.data('year') || '2024';
@@ -30,3 +30,4 @@
      });
      $('#delete_id').val(href);
  });
+

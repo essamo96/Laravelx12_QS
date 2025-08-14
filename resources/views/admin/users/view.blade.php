@@ -36,7 +36,7 @@
                     </div>
                     <div class="card-body py-4">
                         @include('admin.layout.masterLayouts.error')
-                        <table id="kt_table" class="table table-row-bordered gy-5">
+                        <table id="users" class="table table-row-bordered gy-5">
                             <thead>
                                 <tr class="fw-semibold fs-6 text-muted">
                                     <th>#</th>
@@ -61,63 +61,38 @@
 @stop
 @section('js')
     <script>
-        $(document).ready(function() {
-            var table = $('#kt_table').DataTable({
-                responsive: true,
-                processing: true,
-                "bLengthChange": false,
-                "bFilter": false,
-                serverSide: true,
-                ajax: {
-                    url: dataTableAjaxUrl,
-                    data: function(d) {
-                        d.name = $('#generalSearch').val();
-                    }
-                },
-                columns: [{
-                        data: 'DT_RowIndex'
-                    },
-                    {
-                        data: 'name'
-                    },
-                    {
-                        data: 'username'
-                    },
-                    {
-                        data: 'role_id'
-                    },
-                    {
-                        data: 'updated_at'
-                    },
-                    {
-                        data: 'created_by'
-                    },
-                    {
-                        data: 'status'
-                    },
-                    {
-                        data: 'actions',
-                        responsivePriority: -1
-                    },
-                ],
-                language: {
-                    url: dataTableLanguageUrl
-                },
+        var table;
+        var tableId = 'users';
+        var columns = [{
+                data: 'DT_RowIndex'
+            },
+            {
+                data: 'name'
+            },
+            {
+                data: 'username'
+            },
+            {
+                data: 'role_id'
+            },
+            {
+                data: 'updated_at'
+            },
+            {
+                data: 'created_by'
+            },
+            {
+                data: 'status'
+            },
+            {
+                data: 'actions',
+                responsivePriority: -1
+            }
+        ];
 
-                "createdRow": function(row, data, dataIndex) {
-                    $(row).find('td:eq(1)').addClass('d-flex align-items-center');
-                }
-            });
-            @include('admin.layout.masterLayouts.delete')
-            @include('admin.layout.masterLayouts.status')
-            $('.generalSearch').on('input', function() {
-                table.ajax.reload();
-            });
-
-        });
-    </script>
-    <script>
-        const dataTableLanguageUrl = "{{ route('datatables.lang', ['locale' => app()->getLocale()]) }}";
-        const dataTableAjaxUrl = "{{ route($active_menu . '.list') }}";
+        var filterFields = [
+            '#generalSearch',
+        ];
+        @include('admin.layout.masterLayouts.datatableMaster')
     </script>
 @stop

@@ -31,7 +31,7 @@
                     </div>
                     <div class="card-body py-4">
                         @include('admin.layout.masterLayouts.error')
-                        <table id="kt_table" class="table table-row-bordered gy-5">
+                        <table id="permissions" class="table table-row-bordered gy-5">
                             <thead>
                                 <tr class="fw-semibold fs-6 text-muted">
                                     <th>#</th>
@@ -52,47 +52,31 @@
 @stop
 @section('js')
     <script>
-        $(document).ready(function() {
-            var table = $('#kt_table').DataTable({
-                responsive: true,
-                processing: true,
-                "bLengthChange": false,
-                "bFilter": false,
-                serverSide: true,
-                ajax: {
-                    url: "<?= route($active_menu . '.list') ?>",
-                    data: function(d) {
-                        d.name = $('#generalSearch').val();
-                    }
-                },
-                columns: [{
-                        data: 'DT_RowIndex'
-                    },
-                    {
-                        data: 'name'
-                    }, {
-                        data: 'group_id'
-                    },
-                    {
-                        data: 'guard_name'
-                    },
-                    {
-                        data: 'actions',
-                        responsivePriority: -1
-                    },
-                ],
-                language: {
-                    url: dataTableLanguageUrl
-                }
-            });
-            $('.generalSearch').on('input', function() {
-                table.ajax.reload();
-            });
-            @include('admin.layout.masterLayouts.delete')
-        });
+        var table;
+        var tableId = 'permissions';
+        var columns = [{
+                data: 'DT_RowIndex'
+            },
+            {
+                data: 'name'
+            },
+            {
+                data: 'group_id'
+            },
+            {
+                data: 'guard_name'
+            },
+            {
+                data: 'actions',
+                responsivePriority: -1
+            }
+        ];
+
+        var filterFields = [
+            '#generalSearch',
+        ];
+        @include('admin.layout.masterLayouts.datatableMaster')
     </script>
-        <script>
-        const dataTableLanguageUrl = "{{ route('datatables.lang', ['locale' => app()->getLocale()]) }}";
-        const dataTableAjaxUrl = "{{ route($active_menu . '.list') }}";
-    </script>
+
+
 @stop

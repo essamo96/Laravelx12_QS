@@ -36,7 +36,7 @@
                     </div>
                     <div class="card-body py-4">
                         @include('admin.layout.masterLayouts.error')
-                        <table id="kt_table" class="table table-row-bordered gy-5">
+                        <table id="roles" class="table table-row-bordered gy-5">
                             <thead>
                                 <tr class="fw-semibold fs-6 text-muted">
                                     <th>#</th>
@@ -57,6 +57,32 @@
     @include('admin.' . $active_menu . '.parts.modal')
 @stop
 @section('js')
+    <script>
+        var table;
+        var tableId = 'roles';
+        var columns = [{
+                data: 'DT_RowIndex'
+            },
+            {
+                data: 'name'
+            },
+            {
+                data: 'status'
+            },
+            {
+                data: 'guard_name'
+            },
+            {
+                data: 'actions',
+                responsivePriority: -1
+            }
+        ];
+
+        var filterFields = [
+            '#generalSearch',
+        ];
+        @include('admin.layout.masterLayouts.datatableMaster')
+    </script>
     <script>
         $(document).ready(function() {
             var table = $('#kt_table').DataTable({
@@ -101,8 +127,5 @@
 
         });
     </script>
-    <script>
-        const dataTableLanguageUrl = "{{ route('datatables.lang', ['locale' => app()->getLocale()]) }}";
-        const dataTableAjaxUrl = "{{ route($active_menu . '.list') }}";
-    </script>
+
 @stop

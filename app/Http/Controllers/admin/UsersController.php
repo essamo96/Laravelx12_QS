@@ -2,12 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Route;
 use App\Models\User;
-use App\Models\Cities;
-use App\Models\Governorates;
 use App\Models\Role;
-use App\Models\Street;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\Auth;
@@ -16,12 +12,11 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Contracts\Encryption\DecryptException;
+use App\Http\Requests\Admin\UserRequest;
 
 class usersController extends AdminController
 {
     protected $path;
-
-    //////////////////////////////////////////////
 
     public function __construct()
     {
@@ -29,29 +24,11 @@ class usersController extends AdminController
         parent::$data['active_menu'] = 'users';
         $this->path = 'users';
     }
-    protected function saveUser(Request $request, $id = null)
+
+    protected function saveUser(UserRequest $request, $id = null)
     {
         $isUpdate = $id !== null;
 
-        // القواعد المشتركة
-        $rules = [
-            'name'       => 'required|string|max:255',
-            'username'   => ['required', 'string', 'max:255', 'unique:users,username' . ($isUpdate ? ",$id" : '')],
-            'email'      => ['required', 'email', 'max:255', 'unique:users,email' . ($isUpdate ? ",$id" : '')],
-            'role_id'    => 'required|numeric|exists:roles,id',
-            'status'     => 'nullable|in:0,1',
-        ];
-
-        // كلمة المرور إلزامية إذا كان إضافة
-        if ($isUpdate) {
-            $rules['password'] = 'nullable|between:6,16|confirmed';
-        } else {
-            $rules['password'] = 'required|between:6,16|confirmed';
-        }
-
-        $request->validate($rules);
-
-        // إذا تعديل نجيب المستخدم، إذا إضافة ننشئ جديد
         $user = $isUpdate ? User::find($id) : new User();
 
         if (!$user) {
@@ -60,22 +37,21 @@ class usersController extends AdminController
                 ->with('danger', __('app.not_found'));
         }
 
-        // تعبئة البيانات
-        $user->name       = $request->name;
-        $user->username   = $request->username;
-        $user->email      = $request->email;
-        $user->role_id    = $request->role_id;
-        $user->status     = $request->status ? 1 : 0;
+        $validatedData = $request->validated();
+
+        $user->name = $validatedData['name'];
+        $user->username = $validatedData['username'];
+        $user->email = $validatedData['email'];
+        $user->role_id = $validatedData['role_id'];
+        $user->status = $request->has('status') ? 1 : 0;
         $user->created_by = Auth::guard('admin')->id();
 
-        // كلمة المرور
-        if (!$isUpdate || $request->filled('password')) {
-            $user->password = bcrypt($request->password);
+        if (isset($validatedData['password'])) {
+            $user->password = bcrypt($validatedData['password']);
         }
 
         if ($user->save()) {
-            // تحديث أو تعيين الرتبة
-            $role = Role::find($request->role_id);
+            $role = Role::find($validatedData['role_id']);
             if ($role) {
                 $user->syncRoles([$role->name]);
             }
@@ -94,10 +70,8 @@ class usersController extends AdminController
             ->with('danger', __('app.execution_error'));
     }
 
-    //////////////////////////////////////////////
     public function getIndex()
     {
-
         return view('admin.' . $this->path . '.view', parent::$data);
     }
 
@@ -110,11 +84,10 @@ class usersController extends AdminController
         return view('admin.' . $this->path . '.add', parent::$data);
     }
 
-    //////////////////////////////////////////////
     public function getList(Request $request)
     {
         $name = $request->get('name') ?? '';
-        $emp_id = Auth::guard('admin')->user()->emp_type != 1 ? 0 :  Auth::guard('admin')->user()->id;
+        $emp_id = Auth::guard('admin')->user()->emp_type != 1 ? 0 : Auth::guard('admin')->user()->id;
         $role = new User();
         $info = $role->getSearchUsers($name);
         $datatable = Datatables::of($info)->setTotalRecords(sizeof($info));
@@ -128,7 +101,6 @@ class usersController extends AdminController
         });
         $datatable->editColumn('created_by', function ($row) {
             $x = $row->admin ? $row->creator->username : __('app.system');
-
             return '<div class="badge badge-warning fw-bold">' . $x . '</div>';
         });
         $datatable->editColumn('role_id', function ($row) {
@@ -137,13 +109,6 @@ class usersController extends AdminController
             return '<div class="badge badge-warning fw-bold">' . $x . ' (' . $countpermissions . ')</div>';
         });
         $path = $this->path;
-        // $datatable->editColumn('permission', function ($row) {
-        //     return '<a href="' . route('roles.permissions', ['id' => Crypt::encrypt($row->id)]) . '" class="btn btn-outline btn-outline-dashed btn-outline-success btn-active-light-success btn-sm">الصلاحيات</a>';
-        // });
-        // $datatable->editColumn('name', function ($row) {
-        //     return ' <div class="symbol symbol-circle symbol-50px overflow-hidden me-3"><a href="'.url('assets/images/blank.png').'"><div class="symbol-label fs-3 bg-light-danger text-danger">M</div></a></div>
-        //     <div class="d-flex flex-column"><a class="text-gray-800 text-hover-primary mb-1">'. $row->name . '</a><span> ' . $row->email . '  </span></div>';
-        // });
         $datatable->editColumn('name', function ($row) {
             $data['x'] = 3;
             $data['name'] = $row->name;
@@ -163,13 +128,11 @@ class usersController extends AdminController
         return $datatable->addIndexColumn()->make(true);
     }
 
-    //////////////////////////////////////////////
-    public function postAdd(Request $request)
+    public function postAdd(UserRequest $request)
     {
         return $this->saveUser($request);
     }
 
-    //////////////////////////////////////////////
     public function getEdit(Request $request, $id)
     {
         try {
@@ -181,8 +144,8 @@ class usersController extends AdminController
 
         $user = new User();
         $roles = new Role();
-
         $info = $user->getUser($id);
+
         if ($info) {
             parent::$data['users'] = User::where('status', 1)->get();
             parent::$data['roles'] = $roles->getAllRolesActive();
@@ -195,9 +158,7 @@ class usersController extends AdminController
         }
     }
 
-
-    //////////////////////////////////////////////
-    public function postEdit(Request $request, $id)
+    public function postEdit(UserRequest $request, $id)
     {
         try {
             $id = Crypt::decrypt($id);
@@ -210,8 +171,6 @@ class usersController extends AdminController
         return $this->saveUser($request, $id);
     }
 
-
-    //////////////////////////////////////////////
     public function postStatus(Request $request)
     {
         $id = $request->get('id');
@@ -220,8 +179,8 @@ class usersController extends AdminController
             $id = Crypt::decrypt($id);
         } catch (DecryptException $e) {
             return response()->json([
-                'status'  => 'error',
-                'message' => __('app.execution_error') // أو رسالة مخصصة لفشل فك التشفير
+                'status' => 'error',
+                'message' => __('app.execution_error')
             ]);
         }
 
@@ -230,32 +189,30 @@ class usersController extends AdminController
 
         if (!$info) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => __('app.not_found')
             ]);
         }
 
         $newStatus = $info->status == 0 ? 1 : 0;
-        $update    = $users->updateStatus($id, $newStatus);
+        $update = $users->updateStatus($id, $newStatus);
 
         if ($update) {
             return response()->json([
-                'status'  => 'success',
+                'status' => 'success',
                 'message' => $newStatus == 1
                     ? __('app.activation_success')
                     : __('app.disable_success'),
-                'type'    => $newStatus == 1 ? 'yes' : 'no'
+                'type' => $newStatus == 1 ? 'yes' : 'no'
             ]);
         } else {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => __('app.execution_error')
             ]);
         }
     }
 
-
-    //////////////////////////////////////////////
     public function getPassword(Request $request, $id)
     {
         try {
@@ -274,10 +231,9 @@ class usersController extends AdminController
         }
 
         parent::$data['info'] = $info;
-        return view('admin.'.$this->path.'.password', parent::$data);
+        return view('admin.' . $this->path . '.password', parent::$data);
     }
 
-    //////////////////////////////////////////////
     public function postPassword(Request $request, $id)
     {
         try {
@@ -314,7 +270,6 @@ class usersController extends AdminController
         }
     }
 
-    //////////////////////////////////////////////
     public function postDelete(Request $request)
     {
         $id = $request->get('id');
@@ -338,7 +293,7 @@ class usersController extends AdminController
             ]);
         }
 
-        $delete = $info->deleteAdmin($info);
+        $delete = $info->deleteUser($info);
 
         if ($delete) {
             return response()->json([
