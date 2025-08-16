@@ -2,12 +2,6 @@
 @section('title')
     {{ $current_route->{'name_' . trans('app.lang')} }}
 @stop
-@section('page-breadcrumb')
-    <li class="breadcrumb-item text-muted">
-        <a href="{{ url('/') }}" class="text-muted text-hover-primary">@lang('app.home')</a>
-    </li>
-    <li class="breadcrumb-item text-muted">- {{ $current_route->{'name_' . trans('app.lang')} }}</li>
-@stop
 @section('page-content')
     <div class="app-main flex-column flex-row-fluid" id="kt_app_main">
         <div id="kt_app_content" class="app-content flex-column-fluid">

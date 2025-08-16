@@ -87,13 +87,8 @@ class permissionsController extends AdminController
     public function postAdd(PermissionRequest $request)
     {
         try {
-            // يتم التحقق من البيانات تلقائياً عبر PermissionRequest.
-            // إذا فشل التحقق، سيعود المستخدم تلقائياً إلى النموذج.
 
-            // إنشاء الصلاحية الجديدة باستخدام البيانات المتحقق منها.
             Permission::create($request->validated());
-
-            // مسح الكاش بعد الإضافة.
             Cache::forget('spatie.permission.cache');
 
             $request->session()->flash('success', "نجاح، تم الإضافة بنجاح");
