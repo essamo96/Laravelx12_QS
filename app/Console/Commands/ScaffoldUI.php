@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
-class Scaffold extends Command
+class ScaffoldUI extends Command
 {
-    protected $signature = 'make:scaffold {name} {table}';
+    protected $signature = 'make:essam2 {name} {table}';
     protected $description = 'Scaffold a new model, controller, request, and views with custom code';
 
     public function handle()
@@ -22,11 +22,11 @@ class Scaffold extends Command
         // Note 1: Get table columns safely.
         $dbName = config('database.connections.mysql.database');
         $columns = DB::table('INFORMATION_SCHEMA.COLUMNS')
-                    ->where('TABLE_SCHEMA', $dbName)
-                    ->where('TABLE_NAME', $tableName)
-                    ->whereNotIn('COLUMN_NAME', ['id', 'created_at', 'updated_at'])
-                    ->select('COLUMN_NAME', 'DATA_TYPE', 'COLUMN_COMMENT')
-                    ->get();
+            ->where('TABLE_SCHEMA', $dbName)
+            ->where('TABLE_NAME', $tableName)
+            ->whereNotIn('COLUMN_NAME', ['id', 'created_at', 'updated_at'])
+            ->select('COLUMN_NAME', 'DATA_TYPE', 'COLUMN_COMMENT')
+            ->get();
 
         if ($columns->isEmpty()) {
             $this->error("Table '{$tableName}' not found or has no scannable columns.");
@@ -40,6 +40,7 @@ class Scaffold extends Command
         $this->generateController($modelName, $modelLowerCase);
         $this->generateViews($modelName, $modelLowerCase, $tableHead, $frontDataTable, $modalTemplate, $columns);
         $this->updateTranslations($tableName, $columns);
+        $this->generateRoutes($modelName, $modelLowerCase, $tableName);
 
         $this->info("Scaffolded {$name} model, controller, form request, and views for table {$tableName} successfully.");
     }
@@ -117,7 +118,7 @@ class Scaffold extends Command
             $fieldTemplate = '
                     <div class="form-floating mb row">
                         <div class="col">
-                            <label class="p-2">@lang(\'' . $colName . '\')</label>
+                            <label class="p-2">@lang(\'app.' . $colName . '\')</label>
                             <label class="form-check form-switch">
                                 <?php $data = $info ? $info->' . $colName . ' : old("' . $colName . '"); ?>
                                 <input class="form-check-input" name="' . $colName . '" type="checkbox" value="1"
@@ -130,7 +131,7 @@ class Scaffold extends Command
             $fieldTemplate = '
                         <div class="form-floating mb-9 row">
                             <div class="fv-row mb-10 col">
-                                <label class="fw-semibold fs-6 mb-2" for="' . $colName . '">@lang(\'' . $colName . '\')</label>
+                                <label class="fw-semibold fs-6 mb-2" for="' . $colName . '">@lang(\'app.' . $colName . '\')</label>
                                 <textarea name="' . $colName . '" id="' . $colName . '" class="form-control form-control-solid">{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}</textarea>
                             </div>
                         </div>';
@@ -138,21 +139,21 @@ class Scaffold extends Command
         } elseif (in_array($type, ['int', 'bigint', 'decimal', 'float', 'double'])) {
             $fieldTemplate = '
                         <div class="col-md-6 fv-row fv-plugins-icon-container">
-                            <label class="required fs-5 fw-semibold mb-2">@lang(\'' . $colName . '\')</label>
+                            <label class="required fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
                             <input type="number" class="form-control form-control-solid" name="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
                         </div>';
             $rule = "'required|numeric'";
         } elseif (in_array($type, ['varchar', 'char', 'text'])) {
             $fieldTemplate = '
                         <div class="col-md-6 fv-row fv-plugins-icon-container">
-                            <label class="required fs-5 fw-semibold mb-2">@lang(\'' . $colName . '\')</label>
+                            <label class="required fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
                             <input type="text" class="form-control form-control-solid" name="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
                         </div>';
             $rule = "'required|string|max:255'";
         } elseif (in_array($type, ['date', 'datetime', 'timestamp'])) {
             $fieldTemplate = '
                     <div class="col-md-6 fv-row fv-plugins-icon-container">
-                        <label class="required fs-5 fw-semibold mb-2">@lang(\'' . $colName . '\')</label>
+                        <label class="required fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
                         <input type="date" class="form-control form-control-solid" name="' . $colName . '" id="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
                     </div>';
             $rule = "'required|date'";
@@ -160,7 +161,7 @@ class Scaffold extends Command
             $related = Str::singular(Str::before($colName, '_id'));
             $fieldTemplate = '
                     <div class="col-md-6 fv-row fv-plugins-icon-container">
-                        <label class="required fs-5 fw-semibold mb-2">@lang(\'' . $colName . '\')</label>
+                        <label class="required fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
                         <select name="' . $colName . '" id="' . $colName . '" class="form-select form-select-solid" data-control="select2" data-hide-search="true" data-placeholder="@lang(\'' . $colName . '\')">
                             <option value="">اختر ...</option>
                             <?php $data = $info ? $info->' . $colName . ' : old("' . $colName . '"); ?>
@@ -180,29 +181,29 @@ class Scaffold extends Command
     protected function generateModel($modelName, $fillable)
     {
         $modelTemplate = <<<EOT
-<?php
+            <?php
 
-namespace App\Models;
+            namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+            use Illuminate\Database\Eloquent\Factories\HasFactory;
+            use Illuminate\Database\Eloquent\Model;
 
-class {$modelName} extends Model
-{
-    use HasFactory;
+            class {$modelName} extends Model
+            {
+                use HasFactory;
 
-    protected \$fillable = [{$fillable}];
+                protected \$fillable = [{$fillable}];
 
-    public function getSearch(\$name = null)
-    {
-        return \$this->where(function (\$query) use (\$name) {
-            if (\$name != "") {
-                \$query->where('name', 'LIKE', '%' . \$name . '%');
+                public function getSearch(\$name = null)
+                {
+                    return \$this->where(function (\$query) use (\$name) {
+                        if (\$name != "") {
+                            \$query->where('name', 'LIKE', '%' . \$name . '%');
+                        }
+                    })->get();
+                }
             }
-        })->get();
-    }
-}
-EOT;
+            EOT;
 
         $modelDir = app_path("Models");
         if (!File::exists($modelDir)) {
@@ -212,42 +213,107 @@ EOT;
     }
 
     // Note 6: Dedicated method for generating the Form Request file
+    // protected function generateRequest($modelName, $modelLowerCase, $requestRulesArray)
+    // {
+    //     $rulesString = implode(",\n\t\t\t\t", array_map(fn($key, $val) => "'{$key}' => {$val}", array_keys($requestRulesArray), $requestRulesArray));
+    //     $editRulesString = implode(",\n\t\t\t\t", array_map(function ($key, $val) {
+    //         return preg_match('/status|is_user/i', $key) ? "'{$key}' => {$val}" : "'{$key}' => " . 'str_replace(\'required\', \'nullable\', ' . $val . ')';
+    //     }, array_keys($requestRulesArray), $requestRulesArray));
+
+    //     $requestTemplate = <<<EOT
+    //         <?php
+
+    //         namespace App\Http\Requests\Admin;
+
+    //         use Illuminate\Foundation\Http\FormRequest;
+
+    //         class {$modelName}Request extends FormRequest
+    //         {
+    //             public function authorize(): bool
+    //             {
+    //                 return true;
+    //             }
+
+    //             public function rules(): array
+    //             {
+    //                 \$isUpdate = \$this->route('id') !== null;
+    //                 if (\$isUpdate) {
+    //                     return [
+    //                         {$editRulesString}
+    //                     ];
+    //                 }
+
+    //                 return [
+    //                     {$rulesString}
+    //                 ];
+    //             }
+    //         }
+    //         EOT;
+
+    //     $requestDir = app_path("Http/Requests/Admin");
+    //     if (!File::exists($requestDir)) {
+    //         File::makeDirectory($requestDir, 0777, true);
+    //     }
+    //     File::put("{$requestDir}/{$modelName}Request.php", $requestTemplate);
+    // }
     protected function generateRequest($modelName, $modelLowerCase, $requestRulesArray)
     {
-        $rulesString = implode(",\n\t\t\t\t", array_map(fn($key, $val) => "'{$key}' => {$val}", array_keys($requestRulesArray), $requestRulesArray));
-        $editRulesString = implode(",\n\t\t\t\t", array_map(function($key, $val) {
-            return preg_match('/status|is_user/i', $key) ? "'{$key}' => {$val}" : "'{$key}' => " . 'str_replace(\'required\', \'nullable\', ' . $val . ')';
-        }, array_keys($requestRulesArray), $requestRulesArray));
-
-        $requestTemplate = <<<EOT
-<?php
-
-namespace App\Http\Requests\Admin;
-
-use Illuminate\Foundation\Http\FormRequest;
-
-class {$modelName}Request extends FormRequest
-{
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    public function rules(): array
-    {
-        \$isUpdate = \$this->route('id') !== null;
-        if (\$isUpdate) {
-            return [
-                {$editRulesString}
-            ];
+        // تعديل القواعد حسب نوع العمود (_ar, _en, nullable)
+        $processedRules = [];
+        foreach ($requestRulesArray as $field => $rule) {
+            // إذا كان الحقل يحتوي _ar
+            if (strpos($field, '_ar') !== false) {
+                $processedRules[$field] = "regex:/^(?!\d)[\p{Arabic}0-9 ]+$/u|min:3" . (str_contains($rule, 'nullable') ? '|nullable' : '|required');
+            }
+            // إذا كان الحقل يحتوي _en
+            elseif (strpos($field, '_en') !== false) {
+                $processedRules[$field] = "regex:/^(?!\d)[A-Za-z0-9 ]+$/|min:3" . (str_contains($rule, 'nullable') ? '|nullable' : '|required');
+            }
+            // أي حقل آخر
+            else {
+                $processedRules[$field] = (str_contains($rule, 'nullable') ? 'nullable|' : 'required|') . 'string|min:3';
+            }
         }
 
-        return [
-            {$rulesString}
-        ];
-    }
-}
-EOT;
+        // القواعد للإضافة
+        $rulesString = implode(",\n\t\t\t\t", array_map(fn($key, $val) => "'{$key}' => '{$val}'", array_keys($processedRules), $processedRules));
+
+        // القواعد للتعديل (استبدال required بـ nullable تلقائياً ما عدا status و is_user)
+        $editRulesString = implode(",\n\t\t\t\t", array_map(function ($key, $val) {
+            return preg_match('/status|is_user/i', $key)
+                ? "'{$key}' => '{$val}'"
+                : "'{$key}' => '" . str_replace('required', 'nullable', $val) . "'";
+        }, array_keys($processedRules), $processedRules));
+
+        $requestTemplate = <<<EOT
+                <?php
+
+                namespace App\Http\Requests\Admin;
+
+                use Illuminate\Foundation\Http\FormRequest;
+
+                class {$modelName}Request extends FormRequest
+                {
+                    public function authorize(): bool
+                    {
+                        return true;
+                    }
+
+                    public function rules(): array
+                    {
+                        \$isUpdate = \$this->route('id') !== null;
+                        if (\$isUpdate) {
+                            return [
+                                {$editRulesString}
+                            ];
+                        }
+
+                        return [
+                            {$rulesString}
+                        ];
+                    }
+                }
+                EOT;
 
         $requestDir = app_path("Http/Requests/Admin");
         if (!File::exists($requestDir)) {
@@ -256,178 +322,182 @@ EOT;
         File::put("{$requestDir}/{$modelName}Request.php", $requestTemplate);
     }
 
+
     // Note 7: Dedicated method for generating the Controller
     protected function generateController($modelName, $modelLowerCase)
     {
-        $controllerName = "{$modelName}Controller";
-        $controllerPath = app_path("Http/Controllers/Admin/{$controllerName}.php");
+        // تحويل اسم المودل إلى الجمع بشكل ذكي
+        $modelPlural = $this->makePlural($modelName);
+        $modelLowerPlural = strtolower($modelPlural);
+
+        $controllerName = "{$modelPlural}Controller";
         $requestName = "{$modelName}Request";
 
         $controllerTemplate = <<<EOT
-<?php
+            <?php
 
-namespace App\Http\Controllers\Admin;
+            namespace App\Http\Controllers\Admin;
 
-use App\Models\\{$modelName};
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Contracts\Encryption\DecryptException;
-use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\Cache;
-use App\Http\Requests\Admin\\{$requestName};
+            use App\Models\\{$modelName};
+            use Illuminate\Http\Request;
+            use Illuminate\Support\Facades\Crypt;
+            use Illuminate\Contracts\Encryption\DecryptException;
+            use Yajra\DataTables\Facades\DataTables;
+            use Illuminate\Support\Facades\Cache;
+            use App\Http\Requests\Admin\\{$requestName};
 
-class {$modelName}Controller extends AdminController
-{
-    protected \$path;
+            class {$modelPlural}Controller extends AdminController
+            {
+                protected \$path;
 
-    public function __construct()
-    {
-        parent::__construct();
-        parent::\$data['active_menu'] = '{$modelLowerCase}';
-        \$this->path = '{$modelLowerCase}';
-    }
+                public function __construct()
+                {
+                    parent::__construct();
+                    parent::\$data['active_menu'] = '{$modelLowerPlural}';
+                    \$this->path = '{$modelLowerPlural}';
+                }
 
-    public function getIndex()
-    {
-        return view('admin.' . \$this->path . '.view', parent::\$data);
-    }
+                public function getIndex()
+                {
+                    return view('admin.' . \$this->path . '.view', parent::\$data);
+                }
 
-    public function getList(Request \$request)
-    {
-        \$records = {$modelName}::get();
+                public function getList(Request \$request)
+                {
+                    \$records = {$modelName}::get();
 
-        return Datatables::of(\$records)
-            ->editColumn('status', function (\$row) {
-                \$data['id'] = \$row->id;
-                \$data['status'] = \$row->status;
-                return view('admin.' . \$this->path . '.parts.status', \$data)->render();
-            })
-            ->addColumn('actions', function (\$row) {
-                \$data['active_menu'] = \$this->path;
-                \$data['id'] = \$row->id;
-                return view('admin.' . \$this->path . '.parts.actions', \$data)->render();
-            })
-            ->rawColumns(['status', 'actions'])
-            ->addIndexColumn()
-            ->make(true);
-    }
+                    return Datatables::of(\$records)
+                        ->editColumn('status', function (\$row) {
+                            \$data['id'] = \$row->id;
+                            \$data['status'] = \$row->status;
+                            return view('admin.' . \$this->path . '.parts.status', \$data)->render();
+                        })
+                        ->addColumn('actions', function (\$row) {
+                            \$data['active_menu'] = \$this->path;
+                            \$data['id'] = \$row->id;
+                            return view('admin.' . \$this->path . '.parts.actions', \$data)->render();
+                        })
+                        ->rawColumns(['status', 'actions'])
+                        ->addIndexColumn()
+                        ->make(true);
+                }
 
-    public function getAdd()
-    {
-        parent::\$data['info'] = NULL;
-        return view('admin.' . \$this->path . '.add', parent::\$data);
-    }
+                public function getAdd()
+                {
+                    parent::\$data['info'] = NULL;
+                    return view('admin.' . \$this->path . '.add', parent::\$data);
+                }
 
-    public function postAdd({$requestName} \$request)
-    {
-        \$data = \$request->validated();
-        if(isset(\$data['status'])) {
-            \$data['status'] = \$request->input('status') == '1' ? 1 : 0;
-        }
+                public function postAdd({$requestName} \$request)
+                {
+                    \$data = \$request->validated();
+                    if(isset(\$data['status'])) {
+                        \$data['status'] = \$request->input('status') == '1' ? 1 : 0;
+                    }
 
-        \$record = {$modelName}::create(\$data);
+                    \$record = {$modelName}::create(\$data);
 
-        if (\$record) {
-            Cache::forget('spatie.permission.cache');
-            \$request->session()->flash('success', __('app.insert_success'));
-            return redirect(route(\$this->path . '.view'));
-        } else {
-            \$request->session()->flash('danger', __('app.execution_error'));
-            return redirect(route(\$this->path . '.add'))->withInput();
-        }
-    }
+                    if (\$record) {
+                        Cache::forget('spatie.permission.cache');
+                        \$request->session()->flash('success', __('app.insert_success'));
+                        return redirect(route(\$this->path . '.view'));
+                    } else {
+                        \$request->session()->flash('danger', __('app.execution_error'));
+                        return redirect(route(\$this->path . '.add'))->withInput();
+                    }
+                }
 
-    public function getEdit(Request \$request, \$id)
-    {
-        try {
-            \$decryptedId = Crypt::decrypt(\$id);
-        } catch (DecryptException \$e) {
-            \$request->session()->flash('danger', __('app.not_found'));
-            return redirect(route(\$this->path . '.view'));
-        }
+                public function getEdit(Request \$request, \$id)
+                {
+                    try {
+                        \$decryptedId = Crypt::decrypt(\$id);
+                    } catch (DecryptException \$e) {
+                        \$request->session()->flash('danger', __('app.not_found'));
+                        return redirect(route(\$this->path . '.view'));
+                    }
 
-        \$record = {$modelName}::findOrFail(\$decryptedId);
-        parent::\$data['info'] = \$record;
+                    \$record = {$modelName}::findOrFail(\$decryptedId);
+                    parent::\$data['info'] = \$record;
 
-        return view('admin.' . \$this->path . '.add', parent::\$data);
-    }
+                    return view('admin.' . \$this->path . '.add', parent::\$data);
+                }
 
-    public function postEdit({$requestName} \$request, \$id)
-    {
-        try {
-            \$decryptedId = Crypt::decrypt(\$id);
-        } catch (DecryptException \$e) {
-            \$request->session()->flash('danger', __('app.not_found'));
-            return redirect(route(\$this->path . '.view'));
-        }
+                public function postEdit({$requestName} \$request, \$id)
+                {
+                    try {
+                        \$decryptedId = Crypt::decrypt(\$id);
+                    } catch (DecryptException \$e) {
+                        \$request->session()->flash('danger', __('app.not_found'));
+                        return redirect(route(\$this->path . '.view'));
+                    }
 
-        \$record = {$modelName}::findOrFail(\$decryptedId);
+                    \$record = {$modelName}::findOrFail(\$decryptedId);
 
-        \$validatedData = \$request->validated();
-        if(isset(\$validatedData['status'])) {
-            \$validatedData['status'] = \$request->input('status') == '1' ? 1 : 0;
-        }
+                    \$validatedData = \$request->validated();
+                    if(isset(\$validatedData['status'])) {
+                        \$validatedData['status'] = \$request->input('status') == '1' ? 1 : 0;
+                    }
 
-        \$update = \$record->update(\$validatedData);
+                    \$update = \$record->update(\$validatedData);
 
-        if (\$update) {
-            Cache::forget('spatie.permission.cache');
-            \$request->session()->flash('success', __('app.update_success'));
-            return redirect(route(\$this->path . '.view'));
-        } else {
-            \$request->session()->flash('danger', __('app.execution_error'));
-            return redirect(route(\$this->path . '.edit', ['id' => \$id]))->withInput();
-        }
-    }
+                    if (\$update) {
+                        Cache::forget('spatie.permission.cache');
+                        \$request->session()->flash('success', __('app.update_success'));
+                        return redirect(route(\$this->path . '.view'));
+                    } else {
+                        \$request->session()->flash('danger', __('app.execution_error'));
+                        return redirect(route(\$this->path . '.edit', ['id' => \$id]))->withInput();
+                    }
+                }
 
-    public function postStatus(Request \$request)
-    {
-        \$id = \$request->get('id');
-        try {
-            \$decryptedId = Crypt::decrypt(\$id);
-        } catch (DecryptException \$e) {
-            return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
-        }
+                public function postStatus(Request \$request)
+                {
+                    \$id = \$request->get('id');
+                    try {
+                        \$decryptedId = Crypt::decrypt(\$id);
+                    } catch (DecryptException \$e) {
+                        return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
+                    }
 
-        \$record = {$modelName}::findOrFail(\$decryptedId);
+                    \$record = {$modelName}::findOrFail(\$decryptedId);
 
-        \$newStatus = \$record->status == 1 ? 0 : 1;
-        \$update = \$record->update(['status' => \$newStatus]);
+                    \$newStatus = \$record->status == 1 ? 0 : 1;
+                    \$update = \$record->update(['status' => \$newStatus]);
 
-        if (\$update) {
-            Cache::forget('spatie.permission.cache');
-            return response()->json([
-                'status' => 'success',
-                'message' => \$newStatus ? __('app.activation_success') : __('app.disable_success'),
-                'type' => \$newStatus ? 'yes' : 'no'
-            ]);
-        } else {
-            return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
-        }
-    }
+                    if (\$update) {
+                        Cache::forget('spatie.permission.cache');
+                        return response()->json([
+                            'status' => 'success',
+                            'message' => \$newStatus ? __('app.activation_success') : __('app.disable_success'),
+                            'type' => \$newStatus ? 'yes' : 'no'
+                        ]);
+                    } else {
+                        return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
+                    }
+                }
 
-    public function postDelete(Request \$request)
-    {
-        try {
-            \$decryptedId = Crypt::decrypt(\$request->input('id'));
-        } catch (DecryptException \$e) {
-            return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
-        }
+                public function postDelete(Request \$request)
+                {
+                    try {
+                        \$decryptedId = Crypt::decrypt(\$request->input('id'));
+                    } catch (DecryptException \$e) {
+                        return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
+                    }
 
-        try {
-            \$record = {$modelName}::findOrFail(\$decryptedId);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException \$e) {
-            return response()->json(['status' => 'error', 'message' => __('app.not_found')]);
-        }
-        if (\$record->delete()) {
-            Cache::forget('spatie.permission.cache');
-            return response()->json(['status' => 'success', 'message' => __('app.delete_success')]);
-        } else {
-            return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
-        }
-    }
-}
-EOT;
+                    try {
+                        \$record = {$modelName}::findOrFail(\$decryptedId);
+                    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException \$e) {
+                        return response()->json(['status' => 'error', 'message' => __('app.not_found')]);
+                    }
+                    if (\$record->delete()) {
+                        Cache::forget('spatie.permission.cache');
+                        return response()->json(['status' => 'success', 'message' => __('app.delete_success')]);
+                    } else {
+                        return response()->json(['status' => 'error', 'message' => __('app.execution_error')]);
+                    }
+                }
+            }
+            EOT;
 
         $controllerDir = app_path("Http/Controllers/Admin");
         if (!File::exists($controllerDir)) {
@@ -436,21 +506,54 @@ EOT;
         File::put("{$controllerDir}/{$controllerName}.php", $controllerTemplate);
     }
 
+    /**
+     * دالة مساعدة لتحويل الاسم المفرد إلى جمع بسيط.
+     */
+    protected function makePlural($word)
+    {
+        $exceptions = [
+            'Person' => 'People',
+            'Child' => 'Children',
+            'Mouse' => 'Mice',
+            'Foot' => 'Feet'
+        ];
+
+        if (isset($exceptions[$word])) {
+            return $exceptions[$word];
+        }
+
+        $lastLetter = substr($word, -1);
+
+        if ($lastLetter === 'y') {
+            return substr($word, 0, -1) . 'ies';
+        }
+
+        if (in_array($lastLetter, ['s', 'x', 'z']) || in_array(substr($word, -2), ['sh', 'ch'])) {
+            return $word . 'es';
+        }
+
+        return $word . 's';
+    }
+
+
     // Note 8: Dedicated method for generating the View files
     protected function generateViews($modelName, $modelLowerCase, $tableHead, $frontDataTable, $modalTemplate, $columns)
     {
-        $viewsPath = resource_path("views/admin/{$modelLowerCase}");
+        // نحصل على الاسم الجمعي للمجلد
+        $modelLowerPlural = strtolower($this->makePlural($modelName));
+
+        $viewsPath = resource_path("views/admin/{$modelLowerPlural}");
         if (!File::exists($viewsPath)) {
             File::makeDirectory($viewsPath . '/parts', 0755, true);
         }
 
         $this->copyViewParts($viewsPath);
-        $this->createMainViews($viewsPath, $modelLowerCase, $tableHead, $frontDataTable, $modalTemplate, $columns);
+        $this->createMainViews($viewsPath, $modelLowerPlural, $tableHead, $frontDataTable, $modalTemplate, $columns);
     }
 
     protected function copyViewParts($viewsPath)
     {
-        $files_extend = ['actions.blade.php', 'status.blade.php'];
+        $files_extend = ['actions.blade.php', 'status.blade.php','modal.blade.php','general.blade.php'];
         $stubsPath = resource_path('stubs/views/parts');
 
         foreach ($files_extend as $file) {
@@ -462,88 +565,82 @@ EOT;
     protected function createMainViews($viewsPath, $modelLowerCase, $tableHead, $frontDataTable, $modalTemplate, $columns)
     {
         $viewBladeTemp = <<<EOT
-@extends('admin.layout.main_master')
-@section('title')
-    {{ \$current_route->{'name_' . trans('app.lang')} }}
-@stop
-@section('page-breadcrumb')
-    <li class="breadcrumb-item text-muted">
-        <a href="{{ url('/') }}" class="text-muted text-hover-primary">@lang('app.home')</a>
-    </li>
-    <li class="breadcrumb-item text-muted">- {{ \$current_route->{'name_' . trans('app.lang')} }}</li>
-@stop
-@section('page-content')
-    <div class="app-main flex-column flex-row-fluid" id="kt_app_main">
-        <div id="kt_app_content" class="app-content flex-column-fluid">
-            <div id="kt_app_content_container" class="app-container container-xxl">
-                <div class="card">
-                    <div class="card-header border-0 pt-6">
-                        <div class="card-title">
-                            <div class="d-flex align-items-center position-relative my-1">
-                                <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
-                                    <span class="path1"></span>
-                                    <span class="path2"></span>
-                                </i>
-                                <input type="text" id="delete-button"
-                                    class="form-control form-control-solid w-250px ps-13 generalSearch"
-                                    placeholder="@lang('app.search')" />
+            @extends('admin.layout.main_master')
+            @section('title')
+                {{ \$current_route->{'name_' . trans('app.lang')} }}
+            @stop
+            @section('page-content')
+                <div class="app-main flex-column flex-row-fluid" id="kt_app_main">
+                    <div id="kt_app_content" class="app-content flex-column-fluid">
+                        <div id="kt_app_content_container" class="app-container container-xxl">
+                            <div class="card">
+                                <div class="card-header border-0 pt-6">
+                                    <div class="card-title">
+                                        <div class="d-flex align-items-center position-relative my-1">
+                                            <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
+                                                <span class="path1"></span>
+                                                <span class="path2"></span>
+                                            </i>
+                                            <input type="text" id="delete-button"
+                                                class="form-control form-control-solid w-250px ps-13 generalSearch"
+                                                placeholder="@lang('app.search')" />
+                                        </div>
+                                    </div>
+                                    <div class="card-toolbar">
+                                        <div class="d-flex justify-content-end" data-kt-user-table-toolbar="base">
+                                            <div class="menu menu-sub menu-sub-dropdown w-300px w-md-325px" data-kt-menu="true"></div>
+                                            <a href="{{ route(\$active_menu . '.add') }}" class="btn btn-primary">
+                                                <i class="ki-duotone ki-plus fs-2"></i>@lang('app.add')</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body py-4">
+                                    @include('admin.layout.masterLayouts.error')
+                                    <table id="kt_table" class="table table-row-bordered gy-5">
+                                        <thead>
+                                            <tr class="fw-semibold fs-6 text-muted">
+                                                <th>#</th>
+                                                {$tableHead}
+                                                <th>@lang('app.actions')</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-toolbar">
-                            <div class="d-flex justify-content-end" data-kt-user-table-toolbar="base">
-                                <div class="menu menu-sub menu-sub-dropdown w-300px w-md-325px" data-kt-menu="true"></div>
-                                <a href="{{ route(\$active_menu . '.add') }}" class="btn btn-primary">
-                                    <i class="ki-duotone ki-plus fs-2"></i>@lang('app.add')</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body py-4">
-                        @include('admin.layout.masterLayouts.error')
-                        <table id="kt_table" class="table table-row-bordered gy-5">
-                            <thead>
-                                <tr class="fw-semibold fs-6 text-muted">
-                                    <th>#</th>
-                                    {$tableHead}
-                                    <th>@lang('app.actions')</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    @include('admin.' . \$active_menu . '.parts.modal')
-@stop
-@section('js')
-<script>
-    $(document).ready(function() {
-        var table = $('#kt_table').DataTable({
-            responsive: true,
-            processing: true,
-            "bLengthChange": false,
-            "bFilter": false,
-            serverSide: true,
-            ajax: {
-                url: dataTableAjaxUrl,
-                data: function(d) {
-                    d.name = $('.generalSearch').val();
-                }
-            },
-            columns: [{data: 'DT_RowIndex'}, {$frontDataTable} {data: 'actions', responsivePriority: -1}],
-            language: { url: dataTableLanguageUrl }
-        });
-        $('.generalSearch').on('input', function() {
-            table.ajax.reload();
-        });
+                @include('admin.' . \$active_menu . '.parts.modal')
+            @stop
+            @section('js')
+            <script>
+                $(document).ready(function() {
+                    var table = $('#kt_table').DataTable({
+                        responsive: true,
+                        processing: true,
+                        "bLengthChange": false,
+                        "bFilter": false,
+                        serverSide: true,
+                        ajax: {
+                            url: dataTableAjaxUrl,
+                            data: function(d) {
+                                d.name = $('.generalSearch').val();
+                            }
+                        },
+                        columns: [{data: 'DT_RowIndex'}, {$frontDataTable} {data: 'actions', responsivePriority: -1}],
+                        language: { url: dataTableLanguageUrl }
+                    });
+                    $('.generalSearch').on('input', function() {
+                        table.ajax.reload();
+                    });
 
-        @include('admin.layout.masterLayouts.delete')
-        @include('admin.layout.masterLayouts.status')
-    });
-</script>
-@stop
-EOT;
+                    @include('admin.layout.masterLayouts.delete')
+                    @include('admin.layout.masterLayouts.status')
+                });
+            </script>
+            @stop
+            EOT;
 
         File::put("{$viewsPath}/view.blade.php", $viewBladeTemp);
 
@@ -571,48 +668,42 @@ EOT;
         $jsScript .= "</script>";
 
         $addBladeTemp = <<<EOT
-@extends('admin.layout.main_master')
-@section('title')
-    {{ \$current_route->{'name_' . trans('app.lang')} }}
-@stop
-@section('page-breadcrumb')
-    <li class="breadcrumb-item text-muted">
-        <a href="{{ url('/') }}" class="text-muted text-hover-primary">@lang('app.home')</a>
-    </li>
-    <li class="breadcrumb-item text-muted">- {{ \$current_route->{'name_' . trans('app.lang')} }}</li>
-@stop
-@section('page-content')
-    <div class="card">
-        <div class="card-body py-4">
-            @include('admin.layout.masterLayouts.error')
-            <form action="" method="POST">
-                <div class="row justify-content-center">
-                    <div class="col-9">
-                        {$modalTemplate}
+                @extends('admin.layout.main_master')
+                @section('title')
+                    {{ \$current_route->{'name_' . trans('app.lang')} }}
+                @stop
+                @section('page-content')
+                    <div class="card">
+                        <div class="card-body py-4">
+                            @include('admin.layout.masterLayouts.error')
+                            <form action="" method="POST">
+                                <div class="row justify-content-center">
+                                    <div class="col-9">
+                                        {$modalTemplate}
+                                    </div>
+                                </div>
+                                <div class="text-center pt-2">
+                                    {{ csrf_field() }}
+                                    <button type="submit" class="btn btn-primary">@lang('app.save')</button>
+                                    <a type="reset" href="{{ route(\$active_menu . '.view') }}" class="btn btn-light me-3">@lang('app.cancel')</a>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-                <div class="text-center pt-2">
-                    {{ csrf_field() }}
-                    <button type="submit" class="btn btn-primary">@lang('app.save')</button>
-                    <a type="reset" href="{{ route(\$active_menu . '.view') }}" class="btn btn-light me-3">@lang('app.cancel')</a>
-                </div>
-            </form>
-        </div>
-    </div>
-@stop
-@section('js')
-{$jsScript}
-@stop
-EOT;
+                @stop
+                @section('js')
+                {$jsScript}
+                @stop
+                EOT;
 
         File::put("{$viewsPath}/add.blade.php", $addBladeTemp);
     }
 
-    // Note 9: Dedicated method for updating translation files
     protected function updateTranslations($tableName, $columns)
     {
-        $langDirAr = resource_path("lang/ar");
-        $langDirEn = resource_path("lang/en");
+        // المسار لمجلد lang في جذر المشروع
+        $langDirAr = base_path("lang/ar");
+        $langDirEn = base_path("lang/en");
 
         if (!File::exists($langDirAr)) {
             File::makeDirectory($langDirAr, 0777, true);
@@ -627,46 +718,164 @@ EOT;
         $arTranslations = File::exists($langFileAr) ? include $langFileAr : [];
         $enTranslations = File::exists($langFileEn) ? include $langFileEn : [];
 
-        $tableComment = "// Translations for table: {$tableName}";
+        $tableComment = "// ========Translations[{$tableName}]============";
+
         $newArTranslations = [];
         $newEnTranslations = [];
 
         foreach ($columns as $column) {
             $colName = $column->COLUMN_NAME;
             $comment = $column->COLUMN_COMMENT ?: ucfirst($colName);
-            $enText = ucfirst($colName);
-            $arText = $comment;
 
             if (strpos($comment, ',') !== false) {
-                [$enText, $arText] = explode(',', $comment, 2);
+                [$enTextFromComment, $arTextFromComment] = explode(',', $comment, 2);
+                $enText = ucwords(str_replace(['_', ',', '-'], ' ', trim($enTextFromComment)));
+                $arText = trim($arTextFromComment);
+            } else {
+                $enText = ucwords(str_replace(['_', ',', '-'], ' ', trim($colName)));
+                $arText = $comment;
             }
 
-            $newArTranslations[$colName] = trim($arText);
-            $newEnTranslations[$colName] = trim($enText);
+            $newArTranslations[$colName] = $arText;
+            $newEnTranslations[$colName] = $enText;
         }
 
+        // حذف أي ترجمة قديمة للجدول نفسه لتجنب التكرار
+        $arTranslations = array_filter($arTranslations, function ($key) use ($tableComment) {
+            return strpos($key, $tableComment) === false;
+        }, ARRAY_FILTER_USE_KEY);
+
+        $enTranslations = array_filter($enTranslations, function ($key) use ($tableComment) {
+            return strpos($key, $tableComment) === false;
+        }, ARRAY_FILTER_USE_KEY);
+
+        // دمج الترجمة القديمة مع الجديدة تحت ملاحظة الجدول
         $arTranslations = array_merge($arTranslations, [$tableComment => ''], $newArTranslations);
         $enTranslations = array_merge($enTranslations, [$tableComment => ''], $newEnTranslations);
 
         File::put($langFileAr, "<?php\n\nreturn " . var_export($arTranslations, true) . ";\n");
         File::put($langFileEn, "<?php\n\nreturn " . var_export($enTranslations, true) . ";\n");
+
+        $this->info("Translations for table '{$tableName}' updated successfully.");
+    }
+
+    protected function generateRoutes($modelName, $modelLowerCase, $tableName)
+    {
+        // استخدام اسم الكونترولر جمع عن اسم المودل
+        $controllerName = "{$modelName}sController";
+        $routeFile = base_path("routes/{$tableName}.php");
+
+        $routesTemplate = <<<EOT
+            <?php
+
+            use Illuminate\\Support\\Facades\\Route;
+
+            // {$modelName} Routes
+            Route::get('{$tableName}', [
+                'as' => '{$tableName}.view',
+                'middleware' => ['permission:admin.{$tableName}.view'],
+                'uses' => '{$controllerName}@getIndex'
+            ]);
+
+            Route::get('{$tableName}/list', [
+                'as' => '{$tableName}.list',
+                'middleware' => ['permission:admin.{$tableName}.view'],
+                'uses' => '{$controllerName}@getList'
+            ]);
+
+            Route::get('{$tableName}/add', [
+                'as' => '{$tableName}.add',
+                'middleware' => ['permission:admin.{$tableName}.add'],
+                'uses' => '{$controllerName}@getAdd'
+            ]);
+
+            Route::post('{$tableName}/add', [
+                'as' => '{$tableName}.add',
+                'uses' => '{$controllerName}@postAdd'
+            ]);
+
+            Route::get('{$tableName}/edit/{id}', [
+                'as' => '{$tableName}.edit',
+                'middleware' => ['permission:admin.{$tableName}.edit'],
+                'uses' => '{$controllerName}@getEdit'
+            ]);
+
+            Route::post('{$tableName}/edit/{id}', [
+                'as' => '{$tableName}.edit',
+                'middleware' => ['permission:admin.{$tableName}.edit'],
+                'uses' => '{$controllerName}@postEdit'
+            ]);
+
+            Route::post('{$tableName}/delete', [
+                'as' => '{$tableName}.delete',
+                'middleware' => ['permission:admin.{$tableName}.delete'],
+                'uses' => '{$controllerName}@postDelete'
+            ]);
+
+            Route::post('{$tableName}/status', [
+                'as' => '{$tableName}.status',
+                'middleware' => ['permission:admin.{$tableName}.status'],
+                'uses' => '{$controllerName}@postStatus'
+            ]);
+
+            EOT;
+
+        // إنشاء ملف routes جديد إذا ما كان موجود
+        if (!File::exists($routeFile)) {
+            File::put($routeFile, $routesTemplate);
+            $this->info("Route file created: routes/{$tableName}.php");
+        } else {
+            $this->warn("Route file already exists: routes/{$tableName}.php");
+        }
+
+        // نضيف require_once داخل web.php (داخل جروب admin)
+        $this->injectRouteIncludeIntoWeb($tableName);
+    }
+
+    protected function injectRouteIncludeIntoWeb($tableName)
+    {
+        $webFile = base_path('routes/web.php');
+        $requireLine = "    // {$tableName} Route\n    require __DIR__ . '/{$tableName}.php';\n";
+
+        $content = File::get($webFile);
+
+        // لو السطر موجود بالفعل ما نضيفه
+        if (strpos($content, $requireLine) !== false) {
+            $this->warn("Route include for {$tableName} already exists in web.php");
+            return;
+        }
+
+        // إيجاد بداية Route::group المطلوب
+        $groupStartPos = strpos($content, "'middleware' => ['auth:admin']");
+        if ($groupStartPos === false) {
+            $this->error("Could not find Route::group with middleware ['auth:admin'] in web.php");
+            return;
+        }
+
+        // إيجاد موقع فتح القوس { بعد الـ Route::group
+        $bracePos = strpos($content, '{', $groupStartPos);
+        if ($bracePos === false) {
+            $this->error("Could not find opening brace for admin Route::group in web.php");
+            return;
+        }
+
+        // الآن نحتاج إيجاد القوس الختامي المغلق للفنكشن
+        $openBraces = 1;
+        $pos = $bracePos + 1;
+        $length = strlen($content);
+
+        while ($pos < $length && $openBraces > 0) {
+            if ($content[$pos] === '{') $openBraces++;
+            elseif ($content[$pos] === '}') $openBraces--;
+            $pos++;
+        }
+
+        $insertPos = $pos - 1; // مكان القوس الختامي
+
+        // حقن السطر قبل القوس الختامي
+        $newContent = substr($content, 0, $insertPos) . "\n" . $requireLine . substr($content, $insertPos);
+
+        File::put($webFile, $newContent);
+        $this->info("Route include for {$tableName} added inside admin Route::group successfully.");
     }
 }
-// للتجربة:
-
-// احفظ الكود في ملف جديد، وليكن app/Console/Commands/Scaffold.php.
-
-// افتح Terminal أو Command Prompt في مشروع Laravel الخاص بك.
-
-// أضف use App\Console\Commands\Scaffold; إلى ملف app/Console/Kernel.php في نهاية مصفوفة $commands.
-
-// قم بإنشاء جدول في قاعدة البيانات لديك، ثم شغل الكوماند من الطرفية:
-
-// Bash
-
-// php artisan make:scaffold Post posts
-// (مع تغيير "Post" إلى اسم الموديل و"posts" إلى اسم الجدول).
-
-// ستلاحظ أن جميع الملفات تم إنشاؤها في الأماكن المحددة، مع تحديث ملفات الترجمة بشكل تلقائي.
-
-// هذا الكود هو مثال على كيفية بناء أدوات مساعدة (Helpers) قوية ومرنة في Laravel.

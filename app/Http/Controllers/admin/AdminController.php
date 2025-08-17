@@ -22,7 +22,7 @@ class AdminController extends BaseController {
 public function __construct() {
     $permission_group = new PermissionsGroup();
     self::$data['sidebar'] = $permission_group->getAllParentPermissionGroup();
-    self::$data['settings'] = Setting::where('id', 1)->first();
+    // self::$data['settings'] = Setting::where('id', 1)->first();
 
     // الحصول على اسم الراوت الحالي
     $route_name = Route::currentRouteName();

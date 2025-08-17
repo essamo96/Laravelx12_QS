@@ -148,6 +148,17 @@ class PermissionsGroupSeeder extends Seeder
                 'created_at' => '2024-08-08 18:05:02',
                 'updated_at' => '2024-08-08 18:05:02',
             ],
+            [
+                'name' => 'users',
+                'name_ar' => 'مستخدمي النظام',
+                'name_en' => 'Users',
+                'icon' => 'bi bi-person',
+                'sort' => 1,
+                'status' => 1,
+                'parent_id' => 3,
+                'created_at' => '2024-08-08 18:05:02',
+                'updated_at' => '2024-08-08 18:05:02',
+            ],
         ];
 
         foreach ($groups as $index => $group) {
