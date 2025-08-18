@@ -62,6 +62,8 @@ Route::group([
     // Permissions Group Route
     require __DIR__ . '/permissions_group.php';
 
+
+
 });
 
 // ملفات البروفايل للمستخدمين العاديين

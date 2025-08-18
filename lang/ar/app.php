@@ -22,7 +22,7 @@ return array (
   'delete' => 'حذف',
   'edit' => 'تعديل',
   'name' => ' الاسم',
-  'status' => 'الحالة',
+  'status' => 'حالة نعم/لا',
   'actions' => ' العمليات',
   'save' => 'حفظ',
   'do' => 'تنفيذ',
@@ -57,7 +57,7 @@ return array (
   'contact_email' => 'البريد الإلكتروني',
   'footer_text' => 'نص التذييل',
   'footer_date' => 'تاريخ التذييل',
-  'description' => 'الوصف',
+  'description' => 'وصف تفصيلي',
   'logo' => 'الشعار',
   'open' => ' مفتوح',
   'close' => ' اغلاق',
@@ -101,8 +101,8 @@ return array (
   'guard_name' => 'البوابة(Guard_Name) ',
   'sort' => 'الترتيب ',
   'jop' => 'الوظيفة ',
-  'name_ar' => 'الاسم العربي',
-  'name_en' => 'الاسم الانجليزي',
+  'name_ar' => 'الاسم باللغة العربية',
+  'name_en' => 'الاسم باللغة الإنجليزية',
   'parent' => ' القسم التابع له  ',
   'create_emp' => 'تحرير الموظف',
   'qid_rang' => 'ادخل 11 رقم',
@@ -218,22 +218,13 @@ return array (
   'current' => ' الحالي',
   'previous' => ' الرصيد السابق / الكلي',
   'Issue_date' => ' تاريخ الاصدار',
-  'success' => 
+  'success' =>
   array (
     'register_close' => 'تم اغلاق الرواتب ل :count موظفين بنجاح',
   ),
-  'error' => 
+  'error' =>
   array (
     'register_exists' => 'نأسف ! تم اغلاق هذا الشهر في هذه السنة بالفعل ',
   ),
-  'back' => 'رجوع',
-  'is_user' => 'موظف عادي؟ ',
-  'color' => 'اللون',
-  '// ========Translations[settings]============' => '',
-  'close_status' => 'حالة الإغلاق 0 مفتوح - 1 مغلق',
-  'close_text' => 'نص الإغلاق',
-  'currency' => 'العملة',
-  'deleted_at' => 'Deleted_at',
-  '// ========Translations[tests]============' => '',
-  'city_id' => 'اختر المدينة',
+
 );

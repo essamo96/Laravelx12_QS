@@ -76,50 +76,7 @@
             '#generalSearch',
         ];
         @include('admin.layout.masterLayouts.datatableMaster')
-    </script>
-    <script>
-        $(document).ready(function() {
-            var table = $('#kt_table').DataTable({
-                responsive: true,
-                processing: true,
-                "bLengthChange": false,
-                "bFilter": false,
-                serverSide: true,
-                ajax: {
-                    url: dataTableAjaxUrl,
-                    data: function(d) {
-                        d.name = $('.generalSearch').val();
-                    }
-                },
-                columns: [{
-                        data: 'DT_RowIndex'
-                    },
-                    {
-                        data: 'name'
-                    },
-                    {
-                        data: 'status'
-                    },
-                    {
-                        data: 'guard_name'
-                    },
-                    {
-                        data: 'actions',
-                        responsivePriority: -1
-                    },
-                ],
-                language: {
-                    url: dataTableLanguageUrl
-                }
-            });
-            $('.generalSearch').on('input', function() {
-                table.ajax.reload();
-            });
 
-            @include('admin.layout.masterLayouts.delete')
-            @include('admin.layout.masterLayouts.status')
-
-        });
     </script>
 
 @stop
