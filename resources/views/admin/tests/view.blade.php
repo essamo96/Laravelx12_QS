@@ -32,24 +32,11 @@
                 </div>
                 <div class="card-body py-4">
                     @include('admin.layout.masterLayouts.error')
-                    <table id="xx" class="table table-row-bordered gy-5">
+                    <table id="tests" class="table table-row-bordered gy-5">
                         <thead>
                             <tr class="fw-semibold fs-6 text-muted">
                                 <th>#</th>
-                                <th>@lang('app.age')</th></n>
-                                <th>@lang('app.big_number')</th></n>
-                                <th>@lang('app.birth_date')</th></n>
-                                <th>@lang('app.description')</th></n>
-                                <th>@lang('app.last_login_at')</th></n>
-                                <th>@lang('app.name_ar')</th></n>
-                                <th>@lang('app.name_en')</th></n>
-                                <th>@lang('app.options')</th></n>
-                                <th>@lang('app.price')</th></n>
-                                <th>@lang('app.published_at')</th></n>
-                                <th>@lang('app.status')</th></n>
-                                <th>@lang('app.user_id')</th></n>
-                                <th>@lang('app.uuid')</th></n>
-                                <th>@lang('app.weight')</th></n>
+                                <th>@lang('app.age')</th></n><th>@lang('app.name_ar')</th></n><th>@lang('app.price')</th></n><th>@lang('app.status')</th></n>
                                 <th>@lang('app.actions')</th>
                             </tr>
                         </thead>
@@ -67,23 +54,13 @@
 @section('js')
 <script>
 var table;
-var tableId = 'xx';
+var tableId = 'tests';
 var columns = [
     { data: 'DT_RowIndex' },
     { data: "age" },
-{ data: "big_number" },
-{ data: "birth_date" },
-{ data: "description" },
-{ data: "last_login_at" },
 { data: "name_ar" },
-{ data: "name_en" },
-{ data: "options" },
 { data: "price" },
-{ data: "published_at" },
 { data: "status" },
-{ data: "user_id" },
-{ data: "uuid" },
-{ data: "weight" },
 
     { data: 'actions', responsivePriority: -1 }
 ];

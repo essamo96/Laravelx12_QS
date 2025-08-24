@@ -35,15 +35,82 @@ class ScaffoldUI extends Command
 
         list($fillable, $dataTable, $frontDataTable, $modalTemplate, $tableHead, $requestRulesArray) = $this->prepareScaffoldData($columns);
 
+        $this->updateTranslations($tableName, $columns);
         $this->generateModel($modelName, $fillable, $columns);
         $this->generateRequest($modelName, $modelLowerCase, $requestRulesArray);
         $this->generateController($modelName, $modelLowerCase, $columns);
         $this->generateViews($modelName, $modelLowerCase, $tableHead, $frontDataTable, $modalTemplate, $columns);
-        $this->updateTranslations($tableName, $columns);
         $this->generateRoutes($modelName, $modelLowerCase, $tableName);
 
         $this->info("Scaffolded {$name} model, controller, form request, and views for table {$tableName} successfully.");
     }
+
+    // protected function prepareScaffoldData($columns)
+    // {
+    //     $fillable = [];
+    //     $dataTable = '';
+    //     $frontDataTable = '';
+    //     $modalTemplate = '';
+    //     $tableHead = '';
+    //     $rowBuffer = '';
+    //     $fieldCount = 0;
+    //     $requestRulesArray = [];
+
+    //     foreach ($columns as $column) {
+    //         $colName = $column->COLUMN_NAME;
+    //         $type = strtolower($column->DATA_TYPE);
+    //         $comment = $column->COLUMN_COMMENT ?: ucfirst($colName);
+
+    //         $fillable[] = $colName;
+    //         $dataTable .= '->addColumn("' . $colName . '", fn($row) => $row->' . $colName . ')';
+
+    //         // ترجمات
+    //         $translations[$colName]['ar'] = $comment;
+    //         $translations[$colName]['en'] = $comment;
+    //         if (strpos($comment, ',') !== false) {
+    //             [$enText, $arText] = explode(',', $comment, 2);
+    //             $translations[$colName]['en'] = trim($enText);
+    //             $translations[$colName]['ar'] = trim($arText);
+    //         }
+
+    //         // حقول و Rules
+    //         list($fieldTemplate, $rule) = $this->getFieldTemplateAndRule($colName, $type);
+
+    //         if (in_array($type, ['int', 'bigint', 'decimal', 'float', 'double', 'varchar', 'char', 'text', 'date', 'datetime', 'timestamp']) || Str::endsWith($colName, '_id')) {
+    //             $rowBuffer .= $fieldTemplate;
+    //             $fieldCount++;
+    //         } else {
+    //             $modalTemplate .= $fieldTemplate;
+    //         }
+
+    //         if ($fieldCount == 2) {
+    //             $modalTemplate .= '<div class="row mb-5">' . $rowBuffer . '</div>';
+    //             $rowBuffer = '';
+    //             $fieldCount = 0;
+    //         }
+
+    //         // ✅ فقط الأعمدة غير nullable نضيفها في الجدول والداتا تيبل
+    //         if ($column->IS_NULLABLE === 'NO') {
+    //             $tableHead      .= '<th>@lang(\'app.' . $colName . '\')</th></n>';
+    //             $frontDataTable .= '{ data: "' . $colName . '" },' . "\n";
+    //         }
+
+    //         $requestRulesArray[$colName] = $rule;
+    //     }
+
+    //     if ($rowBuffer != '') {
+    //         $modalTemplate .= '<div class="row mb-5">' . $rowBuffer . '</div>';
+    //     }
+
+    //     return [
+    //         "'" . implode("',\n'", $fillable) . "'",
+    //         $dataTable,
+    //         $frontDataTable,
+    //         $modalTemplate,
+    //         $tableHead,
+    //         $requestRulesArray
+    //     ];
+    // }
 
     protected function prepareScaffoldData($columns)
     {
@@ -52,20 +119,22 @@ class ScaffoldUI extends Command
         $frontDataTable = '';
         $modalTemplate = '';
         $tableHead = '';
-        $rowBuffer = '';
-        $fieldCount = 0;
         $requestRulesArray = [];
 
+        $requiredFields = [];
+        $optionalFields = [];
+        $lastFields = [];
+
         foreach ($columns as $column) {
-            $colName = $column->COLUMN_NAME;
-            $type = strtolower($column->DATA_TYPE);
-            $comment = $column->COLUMN_COMMENT ?: ucfirst($colName);
+            $colName    = $column->COLUMN_NAME;
+            $type       = strtolower($column->DATA_TYPE);
+            $isNullable = ($column->IS_NULLABLE === 'YES');
+            $comment    = $column->COLUMN_COMMENT ?: ucfirst($colName);
 
             $fillable[] = $colName;
             $dataTable .= '->addColumn("' . $colName . '", fn($row) => $row->' . $colName . ')';
-            $frontDataTable .= '{ data: "' . $colName . '" },' . "\n";
 
-            // Note 2: Use an associative array for translations
+            // الترجمات
             $translations[$colName]['ar'] = $comment;
             $translations[$colName]['en'] = $comment;
             if (strpos($comment, ',') !== false) {
@@ -74,29 +143,36 @@ class ScaffoldUI extends Command
                 $translations[$colName]['ar'] = trim($arText);
             }
 
-            // Note 3: Use a dedicated method to build field templates for clarity
-            list($fieldTemplate, $rule) = $this->getFieldTemplateAndRule($colName, $type);
-
-            if (in_array($type, ['int', 'bigint', 'decimal', 'float', 'double', 'varchar', 'char', 'text', 'date', 'datetime', 'timestamp']) || Str::endsWith($colName, '_id')) {
-                $rowBuffer .= $fieldTemplate;
-                $fieldCount++;
-            } else {
-                $modalTemplate .= $fieldTemplate;
-            }
-
-            if ($fieldCount == 2) {
-                $modalTemplate .= '<div class="row mb-5">' . $rowBuffer . '</div>';
-                $rowBuffer = '';
-                $fieldCount = 0;
-            }
-
-            $tableHead .= '<th>@lang(\'app.' . $colName . '\')</th></n>';
+            // نحصل على القالب + الفاليديشن
+            list($fieldTemplate, $rule) = $this->getFieldTemplateAndRule($colName, $type, $isNullable);
             $requestRulesArray[$colName] = $rule;
+
+            // التوزيع حسب نوع الحقل
+            if (preg_match('/status|is_user/i', $colName) || preg_match('/(disc|description|notes)/i', $colName)) {
+                $lastFields[] = $fieldTemplate; // آخر شيء
+            } elseif (!$isNullable) {
+                $requiredFields[] = $fieldTemplate; // مطلوب
+            } else {
+                $optionalFields[] = $fieldTemplate; // غير مطلوب
+            }
+
+            // فقط الأعمدة المطلوبة تضاف للـ TableHead و FrontDataTable
+            if (!$isNullable) {
+                $tableHead      .= '<th>@lang(\'app.' . $colName . '\')</th></n>';
+                $frontDataTable .= '{ data: "' . $colName . '" },' . "\n";
+            }
         }
 
-        if ($rowBuffer != '') {
-            $modalTemplate .= '<div class="row mb-5">' . $rowBuffer . '</div>';
+        // ✅ معالجة حالة الحقل الفردي
+        if (count($requiredFields) % 2 != 0 && !empty($optionalFields)) {
+            // ضيف أول optional ليكمل الصف الأخير من required
+            $requiredFields[] = array_shift($optionalFields);
         }
+
+        // ترتيب عرض الحقول داخل النموذج
+        $modalTemplate .= $this->buildRowTemplate($requiredFields);
+        $modalTemplate .= $this->buildRowTemplate($optionalFields);
+        $modalTemplate .= $this->buildRowTemplate($lastFields, true); // في الآخر
 
         return [
             "'" . implode("',\n'", $fillable) . "'",
@@ -108,90 +184,114 @@ class ScaffoldUI extends Command
         ];
     }
 
-    // Note 4: A clear and specific method for generating field rules
+
+    protected function buildRowTemplate($fields, $fullRow = false)
+    {
+        $html = '';
+        $buffer = [];
+
+        foreach ($fields as $field) {
+            $buffer[] = $field;
+            if (count($buffer) == 2) {
+                $html .= '<div class="row mb-5">' . implode('', $buffer) . '</div>';
+                $buffer = [];
+            }
+        }
+
+        // لو باقي حقل واحد
+        if (!empty($buffer)) {
+            $html .= '<div class="row mb-5">' . implode('', $buffer) . '</div>';
+        }
+
+        return $html;
+    }
+
     protected function getFieldTemplateAndRule($colName, $type, $isNullable = false)
     {
         $fieldTemplate = '';
         $rule = '';
 
-        // نحدد إذا الحقل required أو لا
         $requiredClass = $isNullable ? '' : 'required';
         $requiredRule  = $isNullable ? 'nullable' : 'required';
 
-        // حالة status أو is_user (آخر شيء)
+        // status / is_user
         if (preg_match('/status|is_user/i', $colName)) {
             $fieldTemplate = '
-                <div class="form-floating mb row">
-                    <div class="col">
-                        <label class="p-2">@lang(\'app.' . $colName . '\')</label>
-                        <label class="form-check form-switch">
-                            <?php $data = $info ? $info->' . $colName . ' : old("' . $colName . '"); ?>
-                            <input class="form-check-input" name="' . $colName . '" type="checkbox" value="1"
-                                {{ $data == 1 ? "checked=\"checked\"" : "" }}>
-                        </label>
-                    </div>
-                </div>';
+            <div class="form-floating mb row">
+                <div class="col">
+                    <label class="p-2">@lang(\'app.' . $colName . '\')</label>
+                    <label class="form-check form-switch">
+                        <?php $data = $info ? $info->' . $colName . ' : old("' . $colName . '"); ?>
+                        <input class="form-check-input" name="' . $colName . '" type="checkbox" value="1"
+                            {{ $data == 1 ? "checked=\"checked\"" : "" }}>
+                    </label>
+                </div>
+            </div>';
             $rule = "'in:0,1'";
 
-            // الوصف / الملاحظات (آخر شيء)
+            // الوصف / الملاحظات
         } elseif (preg_match('/(disc|description|notes)/i', $colName)) {
             $fieldTemplate = '
-                <div class="form-floating mb-9 row">
-                    <div class="fv-row mb-10 col-12">
-                        <label class="fw-semibold fs-6 mb-2" for="' . $colName . '">@lang(\'app.' . $colName . '\')</label>
-                        <textarea name="' . $colName . '" id="' . $colName . '" class="form-control form-control-solid">{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}</textarea>
-                    </div>
-                </div>';
+            <div class="form-floating mb-9 row">
+                <div class="fv-row mb-10 col-12">
+                    <label class="fw-semibold fs-6 mb-2" for="' . $colName . '">@lang(\'app.' . $colName . '\')</label>
+                    <textarea name="' . $colName . '" id="' . $colName . '" class="form-control form-control-solid">{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}</textarea>
+                </div>
+            </div>';
             $rule = "'nullable|string'";
 
-            // الأرقام
+            // أرقام
         } elseif (in_array($type, ['int', 'bigint', 'decimal', 'float', 'double'])) {
             $fieldTemplate = '
-                <div class="col-md-6 fv-row fv-plugins-icon-container">
-                    <label class="' . $requiredClass . ' fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
-                    <input type="number" class="form-control form-control-solid" name="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
-                </div>';
+            <div class="col-md-6 fv-row fv-plugins-icon-container">
+                <label class="' . $requiredClass . ' fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
+                <input type="number" class="form-control form-control-solid" name="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
+            </div>';
             $rule = "'$requiredRule|numeric'";
 
-            // التواريخ
+            // تواريخ
         } elseif (in_array($type, ['date', 'datetime', 'timestamp'])) {
             $fieldTemplate = '
-                <div class="col-md-6 fv-row fv-plugins-icon-container">
-                    <label class="' . $requiredClass . ' fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
-                    <input type="date" class="form-control form-control-solid" name="' . $colName . '" id="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
-                </div>';
+            <div class="col-md-6 fv-row fv-plugins-icon-container">
+                <label class="' . $requiredClass . ' fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
+                <input type="date" class="form-control form-control-solid" name="' . $colName . '" id="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
+            </div>';
             $rule = "'$requiredRule|date'";
 
-            // العلاقات (ينتهي بـ _id)
+            // العلاقات (_id)
         } elseif (Str::endsWith($colName, '_id')) {
             $related = Str::singular(Str::before($colName, '_id'));
             $fieldTemplate = '
-                <div class="col-md-6 fv-row fv-plugins-icon-container">
-                    <label class="p-2 ' . $requiredClass . '">@lang(\'app.' . $colName . '\')</label>
-                    <select class="form-select form-select-solid" data-control="select2" aria-label="Select example" name="' . $colName . '">
-                        <option value="0">@lang(\'app.choose\')</option>
-                        <?php $data = $info ? $info->' . $colName . ' : old("' . $colName . '"); ?>
-                        @foreach ($' . $related . 's as $item)
-                            <option value="{{ $item->id }}" {{ $data == $item->id ? "selected" : "" }}>
-                                {{ $item->{"name_" . app()->getLocale()} ?? $item->name ?? "" }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>';
+            <div class="col-md-6 fv-row fv-plugins-icon-container">
+                <label class="p-2 ' . $requiredClass . '">@lang(\'app.' . $colName . '\')</label>
+                <select class="form-select form-select-solid" data-control="select2" aria-label="Select example" name="' . $colName . '">
+                    <option value="0">@lang(\'app.choose\')</option>
+                    <?php $data = $info ? $info->' . $colName . ' : old("' . $colName . '"); ?>
+                    @foreach ($' . $related . 's as $item)
+                        <option value="{{ $item->id }}" {{ $data == $item->id ? "selected" : "" }}>
+                            {{ $item->{"name_" . app()->getLocale()} ?? $item->name ?? "" }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>';
             $rule = "'$requiredRule|exists:" . Str::plural($related) . ",id'";
 
-            // النصوص (الافتراضي)
+            // نصوص (افتراضي)
         } else {
             $fieldTemplate = '
-                <div class="col-md-6 fv-row fv-plugins-icon-container">
-                    <label class="' . $requiredClass . ' fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
-                    <input type="text" class="form-control form-control-solid" name="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
-                </div>';
+            <div class="col-md-6 fv-row fv-plugins-icon-container">
+                <label class="' . $requiredClass . ' fs-5 fw-semibold mb-2">@lang(\'app.' . $colName . '\')</label>
+                <input type="text" class="form-control form-control-solid" name="' . $colName . '" value="{{ $info ? $info->' . $colName . ' : old("' . $colName . '") }}">
+            </div>';
             $rule = "'$requiredRule|string|max:255'";
         }
 
         return [$fieldTemplate, $rule];
     }
+
+
+    // Note 4: A clear and specific method for generating field rules
+
 
     // Note 5: Dedicated method for generating the Model file
     protected function generateModel($modelName, $fillable, $columns)
@@ -579,7 +679,7 @@ class ScaffoldUI extends Command
         }
     }
 
-    protected function createMainViews($viewsPath, $modelLowerCase, $tableHead, $frontDataTable, $modalTemplate, $columns)
+    protected function createMainViews($viewsPath, $modelLowerPlural, $tableHead, $frontDataTable, $modalTemplate, $columns)
     {
 
 
@@ -619,7 +719,7 @@ class ScaffoldUI extends Command
                                 </div>
                                 <div class="card-body py-4">
                                     @include('admin.layout.masterLayouts.error')
-                                    <table id="{{ \$modelLowerCase }}" class="table table-row-bordered gy-5">
+                                    <table id="{$modelLowerPlural}" class="table table-row-bordered gy-5">
                                         <thead>
                                             <tr class="fw-semibold fs-6 text-muted">
                                                 <th>#</th>
@@ -641,7 +741,7 @@ class ScaffoldUI extends Command
                 @section('js')
                 <script>
                 var table;
-                var tableId = '{{ \$modelLowerCase}}';
+                var tableId = '{$modelLowerPlural}';
                 var columns = [
                     { data: 'DT_RowIndex' },
                     {$frontDataTable}
@@ -731,7 +831,6 @@ class ScaffoldUI extends Command
 
     protected function updateTranslations($tableName, $columns)
     {
-        // المسار لمجلد lang
         $langDirAr = base_path("lang/ar");
         $langDirEn = base_path("lang/en");
 
@@ -745,126 +844,64 @@ class ScaffoldUI extends Command
         $langFileAr = $langDirAr . "/app.php";
         $langFileEn = $langDirEn . "/app.php";
 
+        // قراءة محتوى الملفات الموجودة
         $arTranslations = File::exists($langFileAr) ? include $langFileAr : [];
         $enTranslations = File::exists($langFileEn) ? include $langFileEn : [];
 
-        $tableComment = "// ========Translations[{$tableName}]============";
-
-        $newArTranslations = [];
-        $newEnTranslations = [];
-
         foreach ($columns as $column) {
             $colName = $column->COLUMN_NAME;
-            $comment = $column->COLUMN_COMMENT ?: ucfirst($colName);
+            $comment = $column->COLUMN_COMMENT;
 
-            // إذا كان هناك فاصلة في التعليق
+            $arText = '';
             if (strpos($comment, ',') !== false) {
-                [$arTextFromComment,] = explode(',', $comment, 2); // الجزء العربي بعد الفاصلة
-                $arText = trim($arTextFromComment);
-            } else {
-                $arText = $comment;
+                $arText = trim(explode(',', $comment)[1]);
             }
 
-            // الترجمة الإنجليزية من اسم العمود
             $enText = ucwords(str_replace(['_', '-', '.'], ' ', $colName));
 
-            $newArTranslations[$colName] = $arText;
-            $newEnTranslations[$colName] = $enText;
+            $arTranslations[$colName] = $arText;
+            $enTranslations[$colName] = $enText;
         }
 
-        // إضافة تعليق فوق كل جدول بدون أن يكون جزءًا من المصفوفة
-        $arContent = "// ========Translations[{$tableName}]============\n";
-        $enContent = "// ========Translations[{$tableName}]============\n";
-
-        foreach ($newArTranslations as $key => $value) {
-            $arContent .= "    '{$key}' => '{$value}',\n";
+        // بناء محتوى الملفات الجديدة بالكامل
+        $arContent = "<?php\n\nreturn [\n";
+        foreach ($arTranslations as $key => $value) {
+            if (is_array($value)) {
+                // Handle nested arrays like 'success' and 'error'
+                $arContent .= "    '{$key}' => [\n";
+                foreach ($value as $subKey => $subValue) {
+                    $arContent .= "        '{$subKey}' => '{$subValue}',\n";
+                }
+                $arContent .= "    ],\n";
+            } else {
+                $arContent .= "    '{$key}' => '{$value}',\n";
+            }
         }
+        $arContent .= "];\n";
 
-        foreach ($newEnTranslations as $key => $value) {
-            $enContent .= "    '{$key}' => '{$value}',\n";
+        $enContent = "<?php\n\nreturn [\n";
+        foreach ($enTranslations as $key => $value) {
+            if (is_array($value)) {
+                // Handle nested arrays
+                $enContent .= "    '{$key}' => [\n";
+                foreach ($value as $subKey => $subValue) {
+                    $enContent .= "        '{$subKey}' => '{$subValue}',\n";
+                }
+                $enContent .= "    ],\n";
+            } else {
+                $enContent .= "    '{$key}' => '{$value}',\n";
+            }
         }
+        $enContent .= "];\n";
 
-        File::put($langFileAr, "<?php\n\nreturn [\n{$arContent}];\n");
-        File::put($langFileEn, "<?php\n\nreturn [\n{$enContent}];\n");
+
+        // حفظ الملفات الجديدة
+        File::put($langFileAr, $arContent);
+        File::put($langFileEn, $enContent);
 
         $this->info("Translations for table '{$tableName}' updated successfully.");
     }
-// protected function updateTranslations($tableName, $columns) gmini
-// {
-//     $langDirAr = base_path("lang/ar");
-//     $langDirEn = base_path("lang/en");
 
-//     if (!File::exists($langDirAr)) {
-//         File::makeDirectory($langDirAr, 0777, true);
-//     }
-//     if (!File::exists($langDirEn)) {
-//         File::makeDirectory($langDirEn, 0777, true);
-//     }
-
-//     $langFileAr = $langDirAr . "/app.php";
-//     $langFileEn = $langDirEn . "/app.php";
-
-//     $arTranslations = File::exists($langFileAr) ? include $langFileAr : [];
-//     $enTranslations = File::exists($langFileEn) ? include $langFileEn : [];
-
-//     // The tableComment is used to section off translations by table.
-//     $tableComment = "// ========Translations[{$tableName}]============";
-
-//     // Remove old translations for this table section to prepare for the new ones.
-//     $oldArTranslations = array_filter($arTranslations, fn($k) => $k !== $tableComment, ARRAY_FILTER_USE_KEY);
-//     $oldEnTranslations = array_filter($enTranslations, fn($k) => $k !== $tableComment, ARRAY_FILTER_USE_KEY);
-
-//     $newArTranslations = [];
-//     $newEnTranslations = [];
-
-//     foreach ($columns as $column) {
-//         $colName = $column->COLUMN_NAME;
-//         $comment = $column->COLUMN_COMMENT ?: $colName;
-
-//         // English translation logic.
-//         $enText = ucwords(str_replace(['_', '-', '.'], ' ', $colName));
-
-//         // Arabic translation logic from the column comment.
-//         if (strpos($comment, ',') !== false) {
-//             [, $arTextFromComment] = explode(',', $comment, 2);
-//             $arText = ucwords(trim(preg_replace('/\s+/', ' ', $arTextFromComment)));
-//         } else {
-//             $arText = $enText;
-//         }
-
-//         $newArTranslations[$colName] = $arText;
-//         $newEnTranslations[$colName] = $enText;
-//     }
-
-//     // Merge old and new translations, ensuring no duplicates.
-//     $mergedArTranslations = array_diff_key($oldArTranslations, $newArTranslations) + $newArTranslations;
-//     $mergedEnTranslations = array_diff_key($oldEnTranslations, $newEnTranslations) + $newEnTranslations;
-
-//     // Create the content for the files.
-//     $arContent = "<?php\n\nreturn [\n    '{$tableComment}',\n";
-//     foreach ($mergedArTranslations as $key => $value) {
-//         // Fix: Added a check to ensure the value is a string before concatenation.
-//         // This prevents the "Array to string conversion" error.
-//         if (is_string($value)) {
-//             $arContent .= "    '{$key}' => '{$value}',\n";
-//         }
-//     }
-//     $arContent .= "];\n";
-
-//     $enContent = "<?php\n\nreturn [\n    '{$tableComment}',\n";
-//     foreach ($mergedEnTranslations as $key => $value) {
-//         // Fix: Added a check to ensure the value is a string before concatenation.
-//         if (is_string($value)) {
-//             $enContent .= "    '{$key}' => '{$value}',\n";
-//         }
-//     }
-//     $enContent .= "];\n";
-
-//     File::put($langFileAr, $arContent);
-//     File::put($langFileEn, $enContent);
-
-//     $this->info("Translations for table '{$tableName}' updated successfully.");
-// }
 
     protected function generateRoutes($modelName, $modelLowerCase, $tableName)
     {
