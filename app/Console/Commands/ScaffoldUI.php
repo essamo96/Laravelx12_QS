@@ -158,7 +158,7 @@ class ScaffoldUI extends Command
 
             // فقط الأعمدة المطلوبة تضاف للـ TableHead و FrontDataTable
             if (!$isNullable) {
-                $tableHead      .= '<th>@lang(\'app.' . $colName . '\')</th></n>';
+                $tableHead      .= "\t\t\t\t\t\t\t\t<th>@lang('app." . $colName . "')</th>\n";
                 $frontDataTable .= '{ data: "' . $colName . '" },' . "\n";
             }
         }

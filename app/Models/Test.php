@@ -13,6 +13,7 @@ class Test extends Model
 'big_number',
 'birth_date',
 'description',
+'image',
 'last_login_at',
 'name_ar',
 'name_en',
@@ -20,6 +21,7 @@ class Test extends Model
 'price',
 'published_at',
 'status',
+'tags',
 'user_id',
 'uuid',
 'weight'];

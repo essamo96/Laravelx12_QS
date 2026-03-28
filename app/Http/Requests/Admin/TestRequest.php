@@ -20,6 +20,7 @@ class TestRequest extends FormRequest
 				'big_number' => 'nullable|string|min:3',
 				'birth_date' => 'nullable|string|min:3',
 				'description' => 'nullable|string|min:3',
+				'image' => 'nullable|string|min:3',
 				'last_login_at' => 'nullable|string|min:3',
 				'name_ar' => 'regex:/^(?!\d)[\p{Arabic}0-9 ]+$/u|min:3|nullable',
 				'name_en' => 'regex:/^(?!\d)[A-Za-z0-9 ]+$/|min:3|nullable',
@@ -27,6 +28,7 @@ class TestRequest extends FormRequest
 				'price' => 'nullable|string|min:3',
 				'published_at' => 'nullable|string|min:3',
 				'status' => 'required|string|min:3',
+				'tags' => 'nullable|string|min:3',
 				'user_id' => 'nullable|string|min:3',
 				'uuid' => 'nullable|string|min:3',
 				'weight' => 'nullable|string|min:3'
@@ -38,6 +40,7 @@ class TestRequest extends FormRequest
 				'big_number' => 'nullable|string|min:3',
 				'birth_date' => 'nullable|string|min:3',
 				'description' => 'nullable|string|min:3',
+				'image' => 'nullable|string|min:3',
 				'last_login_at' => 'nullable|string|min:3',
 				'name_ar' => 'regex:/^(?!\d)[\p{Arabic}0-9 ]+$/u|min:3|required',
 				'name_en' => 'regex:/^(?!\d)[A-Za-z0-9 ]+$/|min:3|nullable',
@@ -45,6 +48,7 @@ class TestRequest extends FormRequest
 				'price' => 'required|string|min:3',
 				'published_at' => 'nullable|string|min:3',
 				'status' => 'required|string|min:3',
+				'tags' => 'nullable|string|min:3',
 				'user_id' => 'nullable|string|min:3',
 				'uuid' => 'nullable|string|min:3',
 				'weight' => 'nullable|string|min:3'

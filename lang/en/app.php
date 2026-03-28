@@ -70,7 +70,7 @@ return [
     'photo' => 'Photo',
     'Completed' => 'Completed ',
     'banner_image' => ' Banner Image',
-    'image' => ' Image',
+    'image' => 'Image',
     'vedio_link' => '  Video Link',
     'created_by' => 'Created By',
     'updated_at' => 'Last View',
@@ -199,4 +199,5 @@ return [
     'user_id' => 'User Id',
     'uuid' => 'Uuid',
     'weight' => 'Weight',
+    'tags' => 'Tags',
 ];

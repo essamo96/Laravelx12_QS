@@ -23,17 +23,16 @@
         rel="stylesheet" />
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{{ asset('admin/assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
+
     @if (App::isLocale('en'))
-        <link href="{{ asset('admin/assets/plugins/custom/datatables/datatables.bundle.css') }}" rel="stylesheet"
-            type="text/css" />
-        <link href="{{ asset('admin/assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
-        <link href="{{ asset('admin/assets/css/style.bundle.css') }}" rel="stylesheet" type="text/css" />
+        <link href="{{ asset('admin/assets/plugins/custom/datatables/datatables.bundle.css') }}" rel="stylesheet" />
+        <link href="{{ asset('admin/assets/css/style.bundle.css') }}?v={{ time() }}" rel="stylesheet" />
     @else
-        <link href="{{ asset('admin/assets/plugins/custom/datatables/datatables.bundle.rtl.css') }}" rel="stylesheet"
-            type="text/css" />
-        <link href="{{ asset('admin/rtl/plugins.bundle.rtl.css') }}" rel="stylesheet" type="text/css" />
-        <link href="{{ asset('admin/rtl/style.bundle.rtl.css') }}" rel="stylesheet" type="text/css" />
+        <link href="{{ asset('admin/assets/plugins/custom/datatables/datatables.bundle.rtl.css') }}" rel="stylesheet" />
+        <link href="{{ asset('admin/rtl/style.bundle.rtl.css') }}?v={{ time() }}" rel="stylesheet" />
     @endif
+
 
     @if (App::isLocale('en'))
         <style>

@@ -36,7 +36,10 @@
                         <thead>
                             <tr class="fw-semibold fs-6 text-muted">
                                 <th>#</th>
-                                <th>@lang('app.age')</th></n><th>@lang('app.name_ar')</th></n><th>@lang('app.price')</th></n><th>@lang('app.status')</th></n>
+                                <th>@lang('app.age')</th>
+								<th>@lang('app.name_ar')</th>
+								<th>@lang('app.price')</th>
+								<th>@lang('app.status')</th>
                                 <th>@lang('app.actions')</th>
                             </tr>
                         </thead>
@@ -58,14 +61,14 @@ var tableId = 'tests';
 var columns = [
     { data: 'DT_RowIndex' },
     { data: "age" },
-{ data: "name_ar" },
-{ data: "price" },
-{ data: "status" },
+    { data: "name_ar" },
+    { data: "price" },
+    { data: "status" },
 
     { data: 'actions', responsivePriority: -1 }
 ];
 
-var filterFields = ['#generalSearch'];
+// var filterFields = ['#generalSearch'];
 @include('admin.layout.masterLayouts.datatableMaster')
 </script>
 @stop
