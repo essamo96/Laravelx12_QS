@@ -9,38 +9,45 @@ class Test extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['age',
-'big_number',
-'birth_date',
-'description',
-'image',
-'last_login_at',
-'name_ar',
-'name_en',
-'options',
-'price',
-'published_at',
-'status',
-'tags',
-'user_id',
-'uuid',
-'weight'];
+    protected $fillable = [
+        'name_ar',
+        'name_en',
+        'description',
+        'age',
+        'big_number',
+        'price',
+        'weight',
+        'status',
+        'birth_date',
+        'published_at',
+        'last_login_at',
+        'uuid',
+        'options',
+        'user_id',
+        'image',
+        'tags',
+    ];
 
-    public function getSearch($name = null)
-    {
-        return $this->where(function ($query) use ($name) {
-            if ($name != "") {
-                $query->where('name', 'LIKE', '%' . $name . '%');
-            }
-        })->get();
-    }
+    public array $searchable = [
+        'name_ar',
+        'name_en',
+        'description',
+        'uuid',
+        'options',
+        'image',
+        'tags',
+    ];
 
-    /**
-     * Relationship with User
-     */
+    public array $datatableColumns = [
+        'name_ar',
+        'age',
+        'price',
+        'status',
+    ];
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
-
 }
+

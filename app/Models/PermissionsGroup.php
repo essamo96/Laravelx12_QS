@@ -63,7 +63,11 @@ class PermissionsGroup extends Model
 
     public function getAllParentPermissionGroup()
     {
-        return $this->where('parent_id', 0)->where('status', 1)->orderBy('sort', 'asc')->get();
+        return $this->where('parent_id', 0)
+            ->where('status', 1)
+            ->orderBy('sort', 'asc')
+            ->with(['mychild' => fn ($q) => $q->where('status', 1)->orderBy('sort', 'asc')])
+            ->get();
     }
 
     public function getAllPermissionGroupSearch($name = null)

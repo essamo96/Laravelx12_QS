@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 use App\Models\Setting;
 use App\Models\PermissionsGroup;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Routing\Controller as BaseController;
@@ -21,7 +22,8 @@ class AdminController extends BaseController {
 
 public function __construct() {
     $permission_group = new PermissionsGroup();
-    self::$data['sidebar'] = $permission_group->getAllParentPermissionGroup();
+    $sidebar = $permission_group->getAllParentPermissionGroup();
+    self::$data['sidebar'] = $this->mergeConfigMenuIntoSidebar($sidebar);
     // self::$data['settings'] = Setting::where('id', 1)->first();
 
     // الحصول على اسم الراوت الحالي
@@ -38,7 +40,7 @@ public function __construct() {
     self::$data['current_route'] = $init_obj;
 
     // البحث عن تطابق في القائمة الجانبية (الأبناء أو الأبوين)
-    foreach (self::$data['sidebar'] as $menu_item) {
+    foreach (self::$data['sidebar'] ?? [] as $menu_item) {
         // تحقق من الأب نفسه
         if ($current_route === $menu_item->name) {
             self::$data['current_route'] = $menu_item;
@@ -56,5 +58,36 @@ public function __construct() {
         }
     }
 }
+
+    /**
+     * دمج عناصر من config/admin_menu.php مع القائمة القادمة من permissions_group (بدون تكرار الاسم).
+     */
+    protected function mergeConfigMenuIntoSidebar(Collection $sidebar): Collection
+    {
+        $existing = $sidebar->pluck('name')->filter()->all();
+
+        foreach (config('admin_menu', []) as $key => $entry) {
+            $name = is_array($entry) ? ($entry['name'] ?? $key) : $key;
+            if (in_array($name, $existing, true)) {
+                continue;
+            }
+
+            $sidebar->push((object) [
+                'id' => null,
+                'name' => $name,
+                'name_ar' => $entry['name_ar'] ?? $name,
+                'name_en' => $entry['name_en'] ?? $name,
+                'icon' => $entry['icon'] ?? 'bi-grid',
+                'color' => $entry['color'] ?? 'primary',
+                'sort' => (int) ($entry['sort'] ?? 500),
+                'status' => 1,
+                'parent_id' => 0,
+                'mychild' => collect(),
+            ]);
+            $existing[] = $name;
+        }
+
+        return $sidebar->sortBy(fn ($item) => (int) ($item->sort ?? 0))->values();
+    }
 
 }

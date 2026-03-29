@@ -67,12 +67,15 @@ Route::group([
     require __DIR__ . '/tests.php';
 });
 
-// ملفات البروفايل للمستخدمين العاديين
+// ملفات البروفايل (Breeze) — لوحة التحكم الفعلية: Metronic في /admin
 Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', function () {
+        return redirect()->route('dashboard.view');
+    })->name('dashboard');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
 });
 
 // Auth routes

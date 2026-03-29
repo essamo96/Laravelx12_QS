@@ -1,0 +1,12 @@
+<?php
+
+return [
+    'table' => '{{table}}',
+    'columns' => [
+{{columns}}
+    ],
+    'filters' => [
+{{filters}}
+    ],
+];
+

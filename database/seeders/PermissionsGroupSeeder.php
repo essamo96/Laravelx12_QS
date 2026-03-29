@@ -4,12 +4,19 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PermissionsGroupSeeder extends Seeder
 {
     public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        if (Schema::hasTable('role_has_permissions')) {
+            DB::table('role_has_permissions')->truncate();
+        }
+        if (Schema::hasTable('permissions')) {
+            DB::table('permissions')->truncate();
+        }
         DB::table('permissions_group')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 

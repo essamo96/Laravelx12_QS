@@ -41,4 +41,14 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => 'Super Admin',
+            'email' => 'admin@admin.com',
+            'username' => 'super_admin',
+            'status' => 1,
+        ]);
+    }
 }

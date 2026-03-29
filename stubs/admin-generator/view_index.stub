@@ -21,14 +21,11 @@
                 </div>
                 <div class="card-body py-4">
                     @include('admin.layout.masterLayouts.error')
-                    <table id="tests" class="table table-row-bordered gy-5">
+                    <table id="{{tableId}}" class="table table-row-bordered gy-5">
                         <thead>
                         <tr class="fw-semibold fs-6 text-muted">
                             <th>#</th>
-                            <th>@lang('app.name_ar')</th>
-                            <th>@lang('app.age')</th>
-                            <th>@lang('app.price')</th>
-                            <th>@lang('app.status')</th>
+{{tableHead}}
                             <th>@lang('app.actions')</th>
                         </tr>
                         </thead>
@@ -45,13 +42,10 @@
 @section('js')
 <script>
 var table;
-var tableId = 'tests';
+var tableId = '{{tableId}}';
 var columns = [
     { data: 'DT_RowIndex' },
-    { data: 'name_ar' },
-    { data: 'age' },
-    { data: 'price' },
-    { data: 'status' },
+{{datatableColumnsJs}}
     { data: 'actions', responsivePriority: -1 }
 ];
 var filterFields = ['#generalSearch'];

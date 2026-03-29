@@ -25,8 +25,7 @@ return new class extends Migration
             $table->timestamps(); // created_at, updated_at
             $table->softDeletes(); // deleted_at
             $table->index('email'); // موجود كـ Index في الجدول القديم
-
-            $table->foreign('role_id')->references('id')->on('roles')->onDelete('set null');
+            // FK to roles is added in a later migration (roles table must exist first).
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

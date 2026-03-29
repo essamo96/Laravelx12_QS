@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Requests\Admin\TestRequest;
-use App\Models\Test;
-use App\Models\User;
+use App\Http\Requests\Admin\{{RequestName}};
+use App\Models\{{ModelName}};
+{{relatedModelUses}}
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Yajra\DataTables\Facades\DataTables;
 
-class TestsController extends AdminController
+class {{ControllerName}} extends AdminController
 {
-    protected string $path = 'tests';
+    protected string $path = '{{PathName}}';
 
     public function __construct()
     {
@@ -24,14 +24,14 @@ class TestsController extends AdminController
 
     public function index(Request $request)
     {
-        parent::$data['users'] = User::query()->get();
-        parent::$data['filters'] = $request->only(['status', 'from_date', 'to_date', 'user_id']);
+{{relationLoaders}}
+        parent::$data['filters'] = $request->only(['status', 'from_date', 'to_date'{{relationFilterKeys}}]);
         return view('admin.' . $this->path . '.view', parent::$data);
     }
 
     public function list(Request $request): JsonResponse
     {
-        $query = Test::query();
+        $query = {{ModelName}}::query();
         $query = $this->applyFilters($query, $request);
 
         return DataTables::of($query)
@@ -56,43 +56,41 @@ class TestsController extends AdminController
     public function create()
     {
         parent::$data['info'] = null;
-        parent::$data['users'] = User::query()->get();
+{{relationLoaders}}
         return view('admin.' . $this->path . '.add', parent::$data);
     }
 
-    public function store(TestRequest $request)
+    public function store({{RequestName}} $request)
     {
         $data = $request->validated();
-        $data['status'] = $request->boolean('status') ? 1 : 0;
-        Test::create($data);
+{{booleanNormalizeStore}}
+        {{ModelName}}::create($data);
 
         Cache::forget('spatie.permission.cache');
         return redirect()->route($this->path . '.view')->with('success', __('app.insert_success'));
     }
 
-    public function edit(string $test)
+    public function edit(string ${{RouteParam}})
     {
-        $recordId = $this->decryptId($test);
-        parent::$data['info'] = Test::findOrFail($recordId);
-        parent::$data['users'] = User::query()->get();
+        $recordId = $this->decryptId(${{RouteParam}});
+        parent::$data['info'] = {{ModelName}}::findOrFail($recordId);
+{{relationLoaders}}
         return view('admin.' . $this->path . '.add', parent::$data);
     }
 
-    public function update(TestRequest $request, string $test)
+    public function update({{RequestName}} $request, string ${{RouteParam}})
     {
-        $recordId = $this->decryptId($test);
-        $record = Test::findOrFail($recordId);
+        $recordId = $this->decryptId(${{RouteParam}});
+        $record = {{ModelName}}::findOrFail($recordId);
         $data = $request->validated();
-        $data['status'] = $request->boolean('status') ? 1 : 0;
+{{booleanNormalizeUpdate}}
         $record->update($data);
 
         Cache::forget('spatie.permission.cache');
         return redirect()->route($this->path . '.view')->with('success', __('app.update_success'));
     }
 
-    /**
-     * حذف عبر DataTables / مودال الحذف (POST + id مشفّر) — يطابق اسم المسار {module}.delete
-     */
+    /** حذف عبر مودال DataTables (POST + id مشفّر) — يطابق المسار {module}.delete */
     public function postDelete(Request $request): JsonResponse
     {
         $encryptedId = (string) $request->input('id');
@@ -106,7 +104,7 @@ class TestsController extends AdminController
             ]);
         }
 
-        $record = Test::find($recordId);
+        $record = {{ModelName}}::find($recordId);
         if (! $record) {
             return response()->json([
                 'status' => 'error',
@@ -121,10 +119,10 @@ class TestsController extends AdminController
         return response()->json(['status' => 'success', 'message' => __('app.delete_success')]);
     }
 
-    public function destroy(Request $request, string $test): JsonResponse
+    public function destroy(Request $request, string ${{RouteParam}}): JsonResponse
     {
-        $recordId = $this->decryptId($test);
-        $record = Test::findOrFail($recordId);
+        $recordId = $this->decryptId(${{RouteParam}});
+        $record = {{ModelName}}::findOrFail($recordId);
         $record->delete();
 
         Cache::forget('spatie.permission.cache');
@@ -134,7 +132,7 @@ class TestsController extends AdminController
     public function status(Request $request): JsonResponse
     {
         $recordId = $this->decryptId((string) $request->input('id'));
-        $record = Test::findOrFail($recordId);
+        $record = {{ModelName}}::findOrFail($recordId);
         $newStatus = (int) !$record->status;
         $record->update(['status' => $newStatus]);
 
@@ -168,7 +166,7 @@ class TestsController extends AdminController
         if ($request->filled('to_date')) {
             $query->whereDate('created_at', '<=', $request->date('to_date'));
         }
-        if ($request->filled('user_id')) { $query->where('user_id', $request->integer('user_id')); }
+{{relationFilters}}
         return $query;
     }
 }
