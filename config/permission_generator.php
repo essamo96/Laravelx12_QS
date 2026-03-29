@@ -15,6 +15,14 @@ return [
         'status',
     ],
 
+    /*
+    | إجراءات إضافية لجدول معيّن فقط (لا تُطبَّق على باقي الوحدات).
+    | مثال: زر «صلاحيات الرتبة» يستخدم @can('admin.roles.permissions')
+    */
+    'extra_table_actions' => [
+        'roles' => ['permissions'],
+    ],
+
     'default_group_parent_id' => (int) env('PERMISSIONS_GROUP_PARENT_ID', 3),
 
     'super_admin_role' => env('SUPER_ADMIN_ROLE', 'super-admin'),

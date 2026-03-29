@@ -24,6 +24,18 @@ class PermissionGeneratorService
         return config('permission_generator.actions', ['view', 'add', 'edit', 'delete', 'update', 'status']);
     }
 
+    /**
+     * الإجراءات الافتراضية + أي إجراءات إضافية لهذا الجدول فقط (مثل permissions لجدول roles).
+     */
+    public function actionsForTable(string $table): array
+    {
+        $table = $this->normalizeTableKey($table);
+        $base = $this->actions();
+        $extra = config('permission_generator.extra_table_actions.'.$table, []);
+
+        return array_values(array_unique(array_merge($base, is_array($extra) ? $extra : [])));
+    }
+
     public function forgetCachedPermissions(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -71,7 +83,7 @@ class PermissionGeneratorService
         $groupId = $this->ensureGroupForTable($table);
         $guard = $this->guard();
 
-        foreach ($this->actions() as $action) {
+        foreach ($this->actionsForTable($table) as $action) {
             $name = $this->permissionName($table, $action);
             $now = now();
 

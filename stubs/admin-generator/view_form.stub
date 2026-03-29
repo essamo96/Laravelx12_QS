@@ -8,7 +8,7 @@
 <div class="card">
     <div class="card-body py-4">
         @include('admin.layout.masterLayouts.error')
-        <form action="{{ !empty($info) ? route($active_menu . '.update', [Str::singular($active_menu) => encrypt($info->id)]) : route($active_menu . '.store') }}" method="POST">
+        <form action="{{ !empty($info) ? route($active_menu . '.update', [Str::singular($active_menu) => encrypt($info->id)]) : route($active_menu . '.store') }}" method="POST"{{ !empty($formMultipart) ? ' enctype="multipart/form-data"' : '' }}>
             @csrf
             @if(!empty($info))
                 @method('PUT')
@@ -25,5 +25,6 @@
         </form>
     </div>
 </div>
+{{formJsSection}}
 @stop
 

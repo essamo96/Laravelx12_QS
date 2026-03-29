@@ -20,10 +20,16 @@ $(document).ready(function() {
     // تهيئة الفلاتر إذا موجودة
     if (typeof filterFields !== 'undefined' && filterFields.length > 0) {
         filterFields.forEach(function(field) {
-            if ($(field).is("input[type='text'], input[type='date']")) {
-                $(field).flatpickr();
+            if ($(field).is("input[type='text'], input[type='date']") && $(field).attr('id') !== 'generalSearch') {
+                $(field).flatpickr({ dateFormat: 'Y-m-d' });
             }
         });
+    }
+
+    var searchDebounceTimer;
+    function debounceTableDraw() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(function() { table.draw(); }, 400);
     }
 
     table = $(tableSelector).DataTable({
@@ -53,8 +59,13 @@ $(document).ready(function() {
     });
 
     if (typeof filterFields !== 'undefined') {
-        $(filterFields.join(',')).on('change keyup', function() {
-            table.draw();
+        $(filterFields.join(',')).each(function() {
+            var $el = $(this);
+            if ($el.attr('id') === 'generalSearch') {
+                $el.on('input', debounceTableDraw);
+            } else {
+                $el.on('change', function() { table.draw(); });
+            }
         });
     }
     var hasStatusColumn = columns.some(col => col.data === 'status');

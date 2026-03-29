@@ -28,6 +28,7 @@ class FieldDetectorService
             'relation_var' => null,
             'relation_table' => null,
             'enum_options' => [],
+            'tags_storage' => 'string',
         ];
 
         if (Str::endsWith($name, '_id')) {
@@ -38,50 +39,146 @@ class FieldDetectorService
             $meta['relation_var'] = Str::camel(Str::pluralStudly(Str::studly($base)));
             $meta['relation_table'] = Str::snake(Str::pluralStudly(Str::studly($base)));
             $meta['rules'][] = 'integer';
-            $meta['rules'][] = 'exists:' . $meta['relation_table'] . ',id';
-        } elseif ($this->isEnum($columnType)) {
+            $meta['rules'][] = 'exists:'.$meta['relation_table'].',id';
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if ($this->isEnum($columnType)) {
             $options = $this->parseEnumOptions($columnType);
             $meta['field_type'] = 'enum_select';
             $meta['enum_options'] = $options;
             if ($options !== []) {
-                $meta['rules'][] = 'in:' . implode(',', $options);
+                $meta['rules'][] = 'in:'.implode(',', $options);
             }
-        } elseif ($this->isBoolean($dataType, $columnType, $name)) {
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if ($this->isBoolean($dataType, $columnType, $name)) {
             $meta['field_type'] = 'boolean';
             $meta['rules'][] = 'boolean';
-        } elseif ($this->isSelectByName($name)) {
-            $meta['field_type'] = 'smart_select';
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if ($this->isTagsColumn($name, $dataType)) {
+            $meta['field_type'] = 'tags';
+            $meta['tags_storage'] = $dataType === 'json' ? 'json' : 'string';
+            $meta['rules'] = [$nullable ? 'nullable' : 'required', 'string'];
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if ($this->isImageColumn($name, $dataType, $columnType)) {
+            $meta['field_type'] = 'image';
+            $meta['rules'] = [
+                $nullable ? 'nullable' : 'required',
+                'image',
+                'max:4096',
+                'mimes:jpeg,png,jpg,gif,webp,svg',
+            ];
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if ($this->isRichDescription($name, $dataType)) {
+            $meta['field_type'] = 'rich_text';
             $meta['rules'][] = 'string';
-        } elseif (in_array($dataType, ['text', 'mediumtext', 'longtext'], true)) {
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if (in_array($dataType, ['text', 'mediumtext', 'longtext'], true)) {
             $meta['field_type'] = 'textarea';
             $meta['rules'][] = 'string';
-        } elseif (in_array($dataType, ['date', 'datetime', 'timestamp'], true)) {
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if ($this->isSelectByName($name)) {
+            $meta['field_type'] = 'smart_select';
+            $meta['rules'][] = 'string';
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if (in_array($dataType, ['date', 'datetime', 'timestamp'], true)) {
             $meta['field_type'] = 'date';
             $meta['rules'][] = 'date';
-        } elseif ($this->isNumeric($dataType)) {
+
+            return $this->finalizeRules($meta, $name);
+        }
+
+        if ($this->isNumeric($dataType)) {
             $meta['field_type'] = 'number';
             $meta['rules'][] = $this->isInteger($dataType) ? 'integer' : 'numeric';
             if (Str::contains($columnType, 'unsigned')) {
                 $meta['rules'][] = 'min:0';
             }
-        } else {
-            $meta['field_type'] = 'text';
-            $meta['rules'][] = 'string';
-            $max = $this->extractVarcharMax($columnType);
-            if ($max !== null) {
-                $meta['rules'][] = 'max:' . $max;
-            }
+
+            return $this->finalizeRules($meta, $name);
         }
 
+        $meta['field_type'] = 'text';
+        $meta['rules'][] = 'string';
+        $max = $this->extractVarcharMax($columnType);
+        if ($max !== null) {
+            $meta['rules'][] = 'max:'.$max;
+        }
+
+        return $this->finalizeRules($meta, $name);
+    }
+
+    private function finalizeRules(array $meta, string $name): array
+    {
         if (Str::endsWith($name, '_ar')) {
-            $meta['rules'][] = 'regex:/^(?!\\d)[\\p{Arabic}0-9\\s]+$/u';
+            $meta['rules'][] = 'regex:/^(?!\d)[\p{Arabic}0-9\s]+$/u';
         }
 
         if (Str::endsWith($name, '_en')) {
-            $meta['rules'][] = 'regex:/^(?!\\d)[A-Za-z0-9\\s]+$/';
+            $meta['rules'][] = 'regex:/^(?!\d)[A-Za-z0-9\s]+$/';
         }
 
         return $meta;
+    }
+
+    private function isImageColumn(string $name, string $dataType, string $columnType): bool
+    {
+        if (! in_array($dataType, ['varchar', 'char', 'string', 'text'], true)) {
+            return false;
+        }
+
+        $n = strtolower($name);
+        if (preg_match('/^(.*_)?(image|photo|picture|avatar|logo|thumbnail|banner|cover|icon|img|thumb)s?$/', $n)) {
+            return true;
+        }
+
+        if (preg_match('/_(image|photo|img|thumb|avatar|logo|banner|cover|picture)$/', $n)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isTagsColumn(string $name, string $dataType): bool
+    {
+        if (! in_array($dataType, ['varchar', 'char', 'string', 'text', 'json', 'longtext'], true)) {
+            return false;
+        }
+
+        return $name === 'tags' || Str::endsWith($name, '_tags');
+    }
+
+    private function isRichDescription(string $name, string $dataType): bool
+    {
+        if (! in_array($dataType, ['text', 'mediumtext', 'longtext'], true)) {
+            return false;
+        }
+
+        $n = strtolower($name);
+
+        return (bool) preg_match('/(description|details|content|body|summary|notes|bio|article|story|html|desc|تفصيل|وصف)/u', $n);
     }
 
     private function labelFromCommentOrName(string $name, string $comment): array
@@ -89,6 +186,7 @@ class FieldDetectorService
         $comment = trim($comment);
         if ($comment !== '' && Str::contains($comment, ',')) {
             [$en, $ar] = array_pad(explode(',', $comment, 2), 2, '');
+
             return [
                 'en' => trim($en) ?: Str::headline($name),
                 'ar' => trim($ar) ?: trim($en),
@@ -108,7 +206,7 @@ class FieldDetectorService
 
     private function parseEnumOptions(string $columnType): array
     {
-        if (!preg_match('/^enum\((.*)\)$/i', $columnType, $matches)) {
+        if (! preg_match('/^enum\((.*)\)$/i', $columnType, $matches)) {
             return [];
         }
 
@@ -146,11 +244,10 @@ class FieldDetectorService
 
     private function extractVarcharMax(string $columnType): ?int
     {
-        if (!preg_match('/^varchar\((\d+)\)$/i', $columnType, $matches)) {
+        if (! preg_match('/^varchar\((\d+)\)$/i', $columnType, $matches)) {
             return null;
         }
 
         return (int) $matches[1];
     }
 }
-

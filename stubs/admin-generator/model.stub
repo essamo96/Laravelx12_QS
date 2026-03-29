@@ -20,6 +20,7 @@ class {{ModelName}} extends Model
     public array $datatableColumns = [
 {{datatableColumns}}
     ];
+{{modelCastsMethod}}
 {{relations}}
 }
 

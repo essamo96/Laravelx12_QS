@@ -48,7 +48,7 @@ class ScaffoldUI extends Command
         }
 
         $this->stubGenerator->ensureDefaultStubs();
-        $data = $this->prepareScaffoldData($columns->all(), $resourceName);
+        $data = $this->prepareScaffoldData($columns->all(), $resourceName, $tableName, $modelName);
 
         $this->translationService->update($tableName, $data['translations']);
         $this->generateModel($modelName, $data);
@@ -67,7 +67,7 @@ class ScaffoldUI extends Command
         return self::SUCCESS;
     }
 
-    protected function prepareScaffoldData(array $columns, string $resourceName): array
+    protected function prepareScaffoldData(array $columns, string $resourceName, string $tableName, string $modelName): array
     {
         $fillable = [];
         $searchable = [];
@@ -85,6 +85,12 @@ class ScaffoldUI extends Command
         $booleanFields = [];
         $datatableConfigColumns = [];
         $datatableConfigFilters = ["        'status'", "        'from_date'", "        'to_date'"];
+        $imageFields = [];
+        $tagsFields = [];
+        $richTextFields = [];
+        $castsJson = [];
+        $relationFilterBlocks = [];
+        $relationColumnNames = [];
 
         foreach ($columns as $column) {
             $meta = $this->fieldDetector->detect($column);
@@ -93,6 +99,19 @@ class ScaffoldUI extends Command
             $translations[$name] = $meta['label'];
             $validationRules[$name] = implode('|', $meta['rules']);
 
+            if ($meta['field_type'] === 'image') {
+                $imageFields[] = $name;
+            }
+            if ($meta['field_type'] === 'tags') {
+                $tagsFields[] = $meta;
+                if (($meta['tags_storage'] ?? 'string') === 'json') {
+                    $castsJson[] = "        '{$name}' => 'array',";
+                }
+            }
+            if ($meta['field_type'] === 'rich_text') {
+                $richTextFields[] = $name;
+            }
+
             if (!$meta['is_nullable']) {
                 $datatableColumns[] = $name;
                 $datatableColumnsJs[] = "    { data: '{$name}' },";
@@ -100,7 +119,7 @@ class ScaffoldUI extends Command
                 $datatableConfigColumns[] = "        '{$name}'";
             }
 
-            if (in_array($meta['field_type'], ['text', 'textarea', 'smart_select', 'enum_select'], true)) {
+            if (in_array($meta['field_type'], ['text', 'textarea', 'rich_text', 'smart_select', 'enum_select', 'tags'], true)) {
                 $searchable[] = $name;
             }
 
@@ -116,10 +135,14 @@ class ScaffoldUI extends Command
                 $relationFilterKeys[] = ", '{$name}'";
                 $relationFilters[] = "        if (\$request->filled('{$name}')) { \$query->where('{$name}', \$request->integer('{$name}')); }";
                 $datatableConfigFilters[] = "        '{$name}'";
+                $relationFilterBlocks[] = $this->buildRelationFilterBlock($meta);
+                $relationColumnNames[] = $name;
             }
 
             $formFields[] = $this->buildFieldTemplate($meta);
         }
+
+        $hasMultipart = $imageFields !== [];
 
         return [
             'fillable' => $this->arrayLines($fillable, 8),
@@ -140,6 +163,20 @@ class ScaffoldUI extends Command
             'tableId' => $resourceName,
             'datatableConfigColumns' => implode(",\n", array_unique($datatableConfigColumns)),
             'datatableConfigFilters' => implode(",\n", array_unique($datatableConfigFilters)),
+            'modelCasts' => $castsJson !== [] ? implode("\n", $castsJson) : '',
+            'imageFieldNamesArray' => $this->arrayLines($imageFields, 8),
+            'imageStoreCode' => $this->buildImageStoreCode($imageFields, $tableName),
+            'imageUpdateCode' => $this->buildImageUpdateCode($imageFields, $tableName),
+            'tagsNormalizeCode' => $this->buildTagsNormalizeCode($tagsFields),
+            'deleteModelFilesCode' => $this->buildDeleteModelFilesCode($imageFields),
+            'listImageEditColumns' => $this->buildListImageEditColumns($imageFields),
+            'listRawColumns' => $this->buildListRawColumns($imageFields),
+            'globalSearchFilter' => $this->buildGlobalSearchFilter($modelName),
+            'formMultipartFlag' => $hasMultipart ? 'true' : 'false',
+            'formJsSection' => $this->buildFormJsSection($richTextFields, $tagsFields),
+            'filterPanelHtml' => $this->buildFilterPanelHtml($relationFilterBlocks),
+            'filterFieldsJs' => $this->buildFilterFieldsJs($relationColumnNames),
+            'modelCastsMethod' => $this->buildModelCastsMethod($castsJson !== [] ? implode("\n", $castsJson) : ''),
         ];
     }
 
@@ -175,6 +212,43 @@ class ScaffoldUI extends Command
                         <label class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="{$name}" value="1" {{ (int) \$data === 1 ? 'checked' : '' }}>
                         </label>
+                    </div>
+            HTML;
+        }
+
+        if ($meta['field_type'] === 'image') {
+            return <<<HTML
+                    <div class="col-md-12 fv-row fv-plugins-icon-container">
+                        <label class="{$requiredClass} fs-5 fw-semibold mb-2">@lang('app.{$name}')</label>
+                        <input type="file" name="{$name}" accept="image/*" class="form-control form-control-solid" />
+                        @if(!empty(\$info) && !empty(\$info->{$name}))
+                            <div class="mt-3">
+                                <img src="{{ asset('storage/' . \$info->{$name}) }}" alt="" class="w-125px h-125px object-fit-cover rounded border" />
+                            </div>
+                        @endif
+                    </div>
+            HTML;
+        }
+
+        if ($meta['field_type'] === 'tags') {
+            return <<<HTML
+                    <div class="col-md-12 fv-row fv-plugins-icon-container">
+                        <label class="{$requiredClass} fs-5 fw-semibold mb-2">@lang('app.{$name}')</label>
+                        <input type="text" class="form-control form-control-solid" name="{$name}" id="tagify_{$name}"
+                            data-kt-tagify="1"
+                            value="{{ old('{$name}', '') }}"
+                            @if(!empty(\$info))
+                                data-initial-tags='@json(\$info->{$name} ?? [])'
+                            @endif />
+                    </div>
+            HTML;
+        }
+
+        if ($meta['field_type'] === 'rich_text') {
+            return <<<HTML
+                    <div class="col-md-12 fv-row fv-plugins-icon-container">
+                        <label class="{$requiredClass} fs-5 fw-semibold mb-2">@lang('app.{$name}')</label>
+                        <textarea class="form-control form-control-solid" name="{$name}" id="ckeditor_{$name}" data-kt-ckeditor="1" rows="6">{{ old('{$name}', \$info->{$name} ?? '') }}</textarea>
                     </div>
             HTML;
         }
@@ -230,6 +304,7 @@ class ScaffoldUI extends Command
             'fillable' => $data['fillable'],
             'searchable' => $data['searchable'],
             'datatableColumns' => $data['datatableColumns'],
+            'modelCastsMethod' => $data['modelCastsMethod'] ?? '',
             'relations' => $data['relations'],
         ]);
 
@@ -260,6 +335,15 @@ class ScaffoldUI extends Command
             'relationFilters' => $data['relationFilters'],
             'booleanNormalizeStore' => $data['booleanNormalizeStore'],
             'booleanNormalizeUpdate' => $data['booleanNormalizeUpdate'],
+            'imageFieldNamesArray' => $data['imageFieldNamesArray'] ?? '',
+            'formMultipartFlag' => $data['formMultipartFlag'] ?? 'false',
+            'imageStoreCode' => $data['imageStoreCode'] ?? '',
+            'imageUpdateCode' => $data['imageUpdateCode'] ?? '',
+            'tagsNormalizeCode' => $data['tagsNormalizeCode'] ?? '',
+            'deleteModelFilesCode' => $data['deleteModelFilesCode'] ?? '',
+            'listImageEditColumns' => $data['listImageEditColumns'] ?? '',
+            'listRawColumns' => $data['listRawColumns'] ?? "'status', 'actions'",
+            'globalSearchFilter' => $data['globalSearchFilter'] ?? '',
         ]);
 
         $this->stubGenerator->write(app_path("Http/Controllers/admin/{$controllerName}.php"), $content);
@@ -275,10 +359,13 @@ class ScaffoldUI extends Command
             'tableId' => $data['tableId'],
             'tableHead' => $data['tableHead'],
             'datatableColumnsJs' => $data['datatableColumnsJs'],
+            'filterPanelHtml' => $data['filterPanelHtml'] ?? '',
+            'filterFieldsJs' => $data['filterFieldsJs'] ?? "var filterFields = ['#generalSearch'];",
         ]);
 
         $form = $this->stubGenerator->render('view_form.stub', [
             'formFields' => $data['formFields'],
+            'formJsSection' => $data['formJsSection'] ?? '',
         ]);
 
         $this->stubGenerator->write($viewsPath . '/view.blade.php', $view);
@@ -460,6 +547,253 @@ PHP;
         return collect($booleanFields)
             ->map(fn (string $field) => "        \$data['{$field}'] = \$request->boolean('{$field}') ? 1 : 0;")
             ->implode("\n");
+    }
+
+    protected function buildModelCastsMethod(string $castsBody): string
+    {
+        if ($castsBody === '') {
+            return '';
+        }
+
+        return "    protected function casts(): array\n    {\n        return [\n".$castsBody."\n        ];\n    }\n";
+    }
+
+    protected function buildImageStoreCode(array $names, string $tableDir): string
+    {
+        if ($names === []) {
+            return '';
+        }
+
+        $dir = 'uploads/'.$tableDir;
+        $lines = [
+            '        foreach ($this->imageFieldNames as $imageField) {',
+            '            unset($data[$imageField]);',
+            '        }',
+        ];
+        foreach ($names as $n) {
+            $lines[] = "        if (\$request->hasFile('{$n}')) {";
+            $lines[] = "            \$data['{$n}'] = \$request->file('{$n}')->store('{$dir}', 'public');";
+            $lines[] = '        }';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    protected function buildImageUpdateCode(array $names, string $tableDir): string
+    {
+        if ($names === []) {
+            return '';
+        }
+
+        $dir = 'uploads/'.$tableDir;
+        $lines = [
+            '        foreach ($this->imageFieldNames as $imageField) {',
+            '            unset($data[$imageField]);',
+            '        }',
+        ];
+        foreach ($names as $n) {
+            $lines[] = "        if (\$request->hasFile('{$n}')) {";
+            $lines[] = "            if (\$record->{$n}) {";
+            $lines[] = "                Storage::disk('public')->delete(\$record->{$n});";
+            $lines[] = '            }';
+            $lines[] = "            \$data['{$n}'] = \$request->file('{$n}')->store('{$dir}', 'public');";
+            $lines[] = '        }';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    protected function buildTagsNormalizeCode(array $tagsFields): string
+    {
+        if ($tagsFields === []) {
+            return '';
+        }
+
+        $blocks = [];
+        foreach ($tagsFields as $meta) {
+            $name = $meta['name'];
+            $storage = $meta['tags_storage'] ?? 'string';
+            $assign = $storage === 'json'
+                ? "\$data['{$name}'] = \$values;"
+                : "\$data['{$name}'] = implode(',', \$values);";
+
+            $blocks[] = <<<PHP
+        if (\$request->has('{$name}')) {
+            \$raw = \$request->input('{$name}');
+            \$decoded = json_decode(\$raw, true);
+            if (is_array(\$decoded)) {
+                \$values = array_values(array_filter(array_map(static function (\$r) {
+                    return is_array(\$r) ? (string) (\$r['value'] ?? '') : (string) \$r;
+                }, \$decoded)));
+                {$assign}
+            }
+        }
+PHP;
+        }
+
+        return implode("\n", $blocks);
+    }
+
+    protected function buildDeleteModelFilesCode(array $imageFields): string
+    {
+        if ($imageFields === []) {
+            return '';
+        }
+
+        return <<<'PHP'
+        foreach ($this->imageFieldNames as $field) {
+            if (! empty($record->{$field})) {
+                Storage::disk('public')->delete($record->{$field});
+            }
+        }
+PHP;
+    }
+
+    protected function buildListImageEditColumns(array $imageFields): string
+    {
+        if ($imageFields === []) {
+            return '';
+        }
+
+        $blocks = [];
+        foreach ($imageFields as $f) {
+            $blocks[] = "            ->editColumn('{$f}', function (\$row) {";
+            $blocks[] = "                if (empty(\$row->{$f})) {";
+            $blocks[] = "                    return '';";
+            $blocks[] = '                }';
+            $blocks[] = "                return '<img src=\"' . e(asset('storage/' . \$row->{$f})) . '\" class=\"w-50px h-50px rounded object-fit-cover border\" alt=\"\" />';";
+            $blocks[] = '            })';
+        }
+
+        return implode("\n", $blocks);
+    }
+
+    protected function buildListRawColumns(array $imageFields): string
+    {
+        $cols = ['status', 'actions'];
+        foreach ($imageFields as $f) {
+            $cols[] = $f;
+        }
+
+        return "'".implode("', '", $cols)."'";
+    }
+
+    protected function buildGlobalSearchFilter(string $modelName): string
+    {
+        return <<<PHP
+        \$searchable = (new \\App\\Models\\{$modelName})->searchable;
+        if (\$request->filled('generalSearch') && \$searchable !== []) {
+            \$term = '%' . addcslashes(\$request->string('generalSearch'), '%_\\\\') . '%';
+            \$query->where(function (\$q) use (\$searchable, \$term) {
+                foreach (\$searchable as \$col) {
+                    \$q->orWhere(\$col, 'like', \$term);
+                }
+            });
+        }
+PHP;
+    }
+
+    protected function buildRelationFilterBlock(array $meta): string
+    {
+        $name = $meta['name'];
+        $var = $meta['relation_var'];
+
+        return <<<HTML
+                        <div class="d-flex flex-column flex-wrap gap-2">
+                            <label class="form-label fw-semibold mb-0">@lang('app.{$name}')</label>
+                            <select id="filter_{$name}" name="{$name}" class="form-select form-select-solid w-200px">
+                                <option value="">@lang('app.all')</option>
+                                @foreach (\${$var} as \$item)
+                                    <option value="{{ \$item->id }}" {{ (string) request('{$name}') === (string) \$item->id ? 'selected' : '' }}>
+                                        {{ \$item->{'name_' . app()->getLocale()} ?? \$item->name ?? \$item->id }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+HTML;
+    }
+
+    protected function buildFilterPanelHtml(array $relationBlocks): string
+    {
+        $rel = implode("\n", $relationBlocks);
+
+        return <<<BLADE
+                    <div class="d-flex flex-wrap flex-stack gap-3 gap-lg-5 mb-6">
+                        <div class="d-flex flex-column flex-wrap gap-2">
+                            <label class="form-label fw-semibold mb-0">@lang('app.search')</label>
+                            <input type="text" id="generalSearch" name="generalSearch" class="form-control form-control-solid w-250px" placeholder="@lang('app.search')" value="{{ request('generalSearch') }}" />
+                        </div>
+                        <div class="d-flex flex-column flex-wrap gap-2">
+                            <label class="form-label fw-semibold mb-0">@lang('app.status')</label>
+                            <select id="filter_status" name="status" class="form-select form-select-solid w-150px">
+                                <option value="">@lang('app.all')</option>
+                                <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>@lang('app.active')</option>
+                                <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>@lang('app.inactive')</option>
+                            </select>
+                        </div>
+                        <div class="d-flex flex-column flex-wrap gap-2">
+                            <label class="form-label fw-semibold mb-0">@lang('app.from_date')</label>
+                            <input type="text" id="filter_from_date" name="from_date" class="form-control form-control-solid w-150px" value="{{ request('from_date') }}" autocomplete="off" />
+                        </div>
+                        <div class="d-flex flex-column flex-wrap gap-2">
+                            <label class="form-label fw-semibold mb-0">@lang('app.to_date')</label>
+                            <input type="text" id="filter_to_date" name="to_date" class="form-control form-control-solid w-150px" value="{{ request('to_date') }}" autocomplete="off" />
+                        </div>
+{$rel}
+                    </div>
+BLADE;
+    }
+
+    protected function buildFilterFieldsJs(array $relationColumnNames): string
+    {
+        $fields = ["'#generalSearch'", "'#filter_status'", "'#filter_from_date'", "'#filter_to_date'"];
+        foreach ($relationColumnNames as $n) {
+            $fields[] = "'#filter_{$n}'";
+        }
+
+        return 'var filterFields = ['."\n        ".implode(",\n        ", $fields)."\n    ];";
+    }
+
+    protected function buildFormJsSection(array $richTextFields, array $tagsMeta): string
+    {
+        if ($richTextFields === [] && $tagsMeta === []) {
+            return '';
+        }
+
+        $lines = ["@section('js')"];
+        if ($tagsMeta !== []) {
+            $lines[] = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" />';
+            $lines[] = '<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>';
+        }
+        if ($richTextFields !== []) {
+            $lines[] = "<script src=\"{{ asset('admin/assets/plugins/custom/ckeditor/ckeditor-classic.bundle.js') }}\"></script>";
+        }
+        $lines[] = '<script>';
+        $lines[] = "document.addEventListener('DOMContentLoaded', function () {";
+        foreach ($richTextFields as $name) {
+            $lines[] = "    (function () {";
+            $lines[] = "        var el = document.querySelector('#ckeditor_{$name}');";
+            $lines[] = "        if (el && typeof ClassicEditor !== 'undefined') { ClassicEditor.create(el).catch(function () {}); }";
+            $lines[] = '    })();';
+        }
+        if ($tagsMeta !== []) {
+            $lines[] = "    document.querySelectorAll('[data-kt-tagify]').forEach(function (input) {";
+            $lines[] = "        if (typeof Tagify === 'undefined') { return; }";
+            $lines[] = "        var initial = input.getAttribute('data-initial-tags');";
+            $lines[] = '        var tagify = new Tagify(input, { dropdown: { enabled: 0 }, delimiters: ",", maxTags: 40 });';
+            $lines[] = '        if (initial) {';
+            $lines[] = '            try {';
+            $lines[] = '                var arr = JSON.parse(initial);';
+            $lines[] = '                if (Array.isArray(arr)) { tagify.addTags(arr.map(function (t) { return typeof t === "string" ? t : (t && t.value) ? t.value : String(t); })); }';
+            $lines[] = '            } catch (e) {}';
+            $lines[] = '        }';
+            $lines[] = '    });';
+        }
+        $lines[] = '});';
+        $lines[] = '</script>';
+        $lines[] = '@stop';
+
+        return implode("\n", $lines);
     }
 }
 

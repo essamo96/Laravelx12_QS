@@ -10,11 +10,19 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 
 class {{ControllerName}} extends AdminController
 {
     protected string $path = '{{PathName}}';
+
+    /** أسماء حقول الصور (للحذف والعرض في الجدول) */
+    protected array $imageFieldNames = [
+{{imageFieldNamesArray}}
+    ];
+
+    protected bool $formHasMultipart = {{formMultipartFlag}};
 
     public function __construct()
     {
@@ -25,7 +33,7 @@ class {{ControllerName}} extends AdminController
     public function index(Request $request)
     {
 {{relationLoaders}}
-        parent::$data['filters'] = $request->only(['status', 'from_date', 'to_date'{{relationFilterKeys}}]);
+        parent::$data['filters'] = $request->only(['generalSearch', 'status', 'from_date', 'to_date'{{relationFilterKeys}}]);
         return view('admin.' . $this->path . '.view', parent::$data);
     }
 
@@ -35,6 +43,7 @@ class {{ControllerName}} extends AdminController
         $query = $this->applyFilters($query, $request);
 
         return DataTables::of($query)
+{{listImageEditColumns}}
             ->editColumn('status', function ($row) {
                 return view('admin.' . $this->path . '.parts.status', [
                     'id' => $row->id,
@@ -48,7 +57,7 @@ class {{ControllerName}} extends AdminController
                     'active_menu' => $this->path,
                 ])->render();
             })
-            ->rawColumns(['status', 'actions'])
+            ->rawColumns([{{listRawColumns}}])
             ->addIndexColumn()
             ->make(true);
     }
@@ -56,6 +65,7 @@ class {{ControllerName}} extends AdminController
     public function create()
     {
         parent::$data['info'] = null;
+        parent::$data['formMultipart'] = $this->formHasMultipart;
 {{relationLoaders}}
         return view('admin.' . $this->path . '.add', parent::$data);
     }
@@ -64,6 +74,8 @@ class {{ControllerName}} extends AdminController
     {
         $data = $request->validated();
 {{booleanNormalizeStore}}
+{{tagsNormalizeCode}}
+{{imageStoreCode}}
         {{ModelName}}::create($data);
 
         Cache::forget('spatie.permission.cache');
@@ -74,6 +86,7 @@ class {{ControllerName}} extends AdminController
     {
         $recordId = $this->decryptId(${{RouteParam}});
         parent::$data['info'] = {{ModelName}}::findOrFail($recordId);
+        parent::$data['formMultipart'] = $this->formHasMultipart;
 {{relationLoaders}}
         return view('admin.' . $this->path . '.add', parent::$data);
     }
@@ -84,6 +97,8 @@ class {{ControllerName}} extends AdminController
         $record = {{ModelName}}::findOrFail($recordId);
         $data = $request->validated();
 {{booleanNormalizeUpdate}}
+{{tagsNormalizeCode}}
+{{imageUpdateCode}}
         $record->update($data);
 
         Cache::forget('spatie.permission.cache');
@@ -112,6 +127,7 @@ class {{ControllerName}} extends AdminController
             ]);
         }
 
+{{deleteModelFilesCode}}
         $record->delete();
 
         Cache::forget('spatie.permission.cache');
@@ -123,6 +139,7 @@ class {{ControllerName}} extends AdminController
     {
         $recordId = $this->decryptId(${{RouteParam}});
         $record = {{ModelName}}::findOrFail($recordId);
+{{deleteModelFilesCode}}
         $record->delete();
 
         Cache::forget('spatie.permission.cache');
@@ -166,6 +183,7 @@ class {{ControllerName}} extends AdminController
         if ($request->filled('to_date')) {
             $query->whereDate('created_at', '<=', $request->date('to_date'));
         }
+{{globalSearchFilter}}
 {{relationFilters}}
         return $query;
     }
