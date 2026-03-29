@@ -1,5 +1,7 @@
+@php $r = ($item->name ?? '') . '.view'; @endphp
+@if(\Illuminate\Support\Facades\Route::has($r))
 <div class="menu-item">
-    <a class="menu-link {{ $active_menu == ($item->name ?? '') ? 'here show' : '' }}" href="{{ route(($item->name ?? '') . '.view') }}">
+    <a class="menu-link {{ $active_menu == ($item->name ?? '') ? 'here show' : '' }}" href="{{ route($r) }}">
         <span class="menu-icon">
             <span class="svg-icon svg-icon-2">
                 <i class="bi {{ $item->icon ?? '' }} fs-1 text-{{  $item->color }}"></i>
@@ -10,3 +12,4 @@
         </span>
     </a>
 </div>
+@endif

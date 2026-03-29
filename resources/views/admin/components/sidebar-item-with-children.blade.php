@@ -17,15 +17,18 @@
             @foreach ($item->mychild ?? [] as $child)
                 @php $permission = 'admin.' . ($child->name ?? '') . '.view'; @endphp
                 @can($permission)
+                    @php $cr = ($child->name ?? '') . '.view'; @endphp
+                    @if(\Illuminate\Support\Facades\Route::has($cr))
                     <div class="menu-item">
                         <a class="menu-link {{ $active_menu == ($child->name ?? '') ? 'active' : '' }}"
-                           href="{{ route(($child->name ?? '') . '.view') }}">
+                           href="{{ route($cr) }}">
                             <span class="menu-bullet"><span class="bullet bullet-dot"></span></span>
                             <span class="menu-title" style="color:white">
                                 {{ $child->{'name_' . app()->getLocale()} ?? '' }}
                             </span>
                         </a>
                     </div>
+                    @endif
                 @endcan
             @endforeach
         </div>

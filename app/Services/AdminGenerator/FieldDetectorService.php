@@ -181,22 +181,43 @@ class FieldDetectorService
         return (bool) preg_match('/(description|details|content|body|summary|notes|bio|article|story|html|desc|تفصيل|وصف)/u', $n);
     }
 
+    /**
+     * تسميات منفصلة للغتين: ملف en لا يُملأ بنص عربي.
+     * تعليقات المايقريشن غالباً: @lang('app.x'), نص عربي → نستخرج العربية بعد الفاصلة ونولّد إنجليزية من اسم العمود.
+     */
     private function labelFromCommentOrName(string $name, string $comment): array
     {
         $comment = trim($comment);
-        if ($comment !== '' && Str::contains($comment, ',')) {
-            [$en, $ar] = array_pad(explode(',', $comment, 2), 2, '');
+        $defaultEn = Str::headline(str_replace('_', ' ', $name));
+
+        if ($comment === '') {
+            return ['en' => $defaultEn, 'ar' => $defaultEn];
+        }
+
+        if (Str::contains($comment, ',')) {
+            [$part1, $part2] = array_pad(explode(',', $comment, 2), 2, '');
+            $part1 = trim($part1);
+            $part2 = trim($part2);
+
+            $ar = $part2 !== '' ? $part2 : (preg_match('/\p{Arabic}/u', $part1) ? $part1 : $defaultEn);
+
+            if (preg_match('/@lang\s*\(/i', $part1)) {
+                return ['en' => $defaultEn, 'ar' => $ar];
+            }
+
+            $en = $part1 !== '' && ! preg_match('/\p{Arabic}/u', $part1) ? $part1 : $defaultEn;
 
             return [
-                'en' => trim($en) ?: Str::headline($name),
-                'ar' => trim($ar) ?: trim($en),
+                'en' => $en,
+                'ar' => $ar,
             ];
         }
 
-        return [
-            'en' => $comment !== '' ? $comment : Str::headline($name),
-            'ar' => $comment !== '' ? $comment : Str::headline($name),
-        ];
+        if (preg_match('/\p{Arabic}/u', $comment)) {
+            return ['en' => $defaultEn, 'ar' => $comment];
+        }
+
+        return ['en' => $comment, 'ar' => $comment];
     }
 
     private function isEnum(string $columnType): bool

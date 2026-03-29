@@ -23,7 +23,8 @@ class AdminController extends BaseController {
 public function __construct() {
     $permission_group = new PermissionsGroup();
     $sidebar = $permission_group->getAllParentPermissionGroup();
-    self::$data['sidebar'] = $this->mergeConfigMenuIntoSidebar($sidebar);
+    $sidebar = $this->mergeConfigMenuIntoSidebar($sidebar);
+    self::$data['sidebar'] = $this->filterSidebarByRegisteredRoutes($sidebar);
     // self::$data['settings'] = Setting::where('id', 1)->first();
 
     // الحصول على اسم الراوت الحالي
@@ -87,7 +88,40 @@ public function __construct() {
             $existing[] = $name;
         }
 
-        return $sidebar->sortBy(fn ($item) => (int) ($item->sort ?? 0))->values();
+        return $sidebar->unique(fn ($item) => (string) ($item->name ?? ''))
+            ->sortBy(fn ($item) => (int) ($item->sort ?? 0))
+            ->values();
+    }
+
+    /**
+     * إخفاء عناصر القائمة التي لا يوجد لها مسار {name}.view مسجّل (مثلاً بعد حذف وحدة tests).
+     * الصلاحية وحدها لا تكفي — يجب أن يكون المسار موجوداً حتى لا يحدث RouteNotFoundException في القائمة.
+     */
+    protected function filterSidebarByRegisteredRoutes(Collection $sidebar): Collection
+    {
+        return $sidebar->map(function ($item) {
+            if (! empty($item->mychild) && count($item->mychild) > 0) {
+                $filtered = $item->mychild->filter(function ($child) {
+                    $cn = $child->name ?? '';
+
+                    return $cn !== '' && Route::has($cn.'.view');
+                })->values();
+
+                if ($filtered->isEmpty()) {
+                    return null;
+                }
+                $item->mychild = $filtered;
+
+                return $item;
+            }
+
+            $name = $item->name ?? '';
+            if ($name === '' || ! Route::has($name.'.view')) {
+                return null;
+            }
+
+            return $item;
+        })->filter()->values();
     }
 
 }

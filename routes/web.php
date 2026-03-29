@@ -50,21 +50,21 @@ Route::group([
     Route::get('users_menu/', ['as' => 'users_menu.view', 'uses' => 'DashboardController@getIndex']);
     Route::get('static_system', ['as' => 'static_system.view', 'middleware' => ['permission:admin.dashboard.view'], 'uses' => 'DashboardController@getIndex']);
 
-    // Roles Route
-    require __DIR__ . '/roles.php';
+    // مسارات الوحدات — يُحمّل الملف فقط إن وُجد (تجنّب 500 عند حذف tests.php أو أي وحدة)
+    foreach ([
+        'roles.php',
+        'users.php',
+        'permissions.php',
+        'permissions_group.php',
+        'tests.php',
+        'products.php',
+    ] as $routeFile) {
+        $path = __DIR__.'/'.$routeFile;
+        if (is_file($path)) {
+            require $path;
+        }
+    }
 
-    // Users Route
-    require __DIR__ . '/users.php';
-
-    // Permissions Route
-    require __DIR__ . '/permissions.php';
-
-    // Permissions Group Route
-    require __DIR__ . '/permissions_group.php';
-
-
-    // tests Route
-    require __DIR__ . '/tests.php';
 });
 
 // ملفات البروفايل (Breeze) — لوحة التحكم الفعلية: Metronic في /admin

@@ -494,21 +494,24 @@ PHP;
     protected function injectRouteIncludeIntoWeb(string $tableName): void
     {
         $webFile = base_path('routes/web.php');
-        $line = "    // {$tableName} Route\n    require __DIR__ . '/{$tableName}.php';\n";
+        $fileKey = "'{$tableName}.php'";
         $content = File::get($webFile);
 
-        if (Str::contains($content, $line)) {
+        if (Str::contains($content, $fileKey)) {
             return;
         }
 
-        $anchor = "    // tests Route\n    require __DIR__ . '/tests.php';";
-        if (Str::contains($content, $anchor)) {
-            $content = str_replace($anchor, $anchor . "\n\n" . $line, $content);
-        } else {
-            $content .= "\n" . $line;
+        $needle = "        'permissions_group.php',\n";
+        if (Str::contains($content, $needle)) {
+            File::put($webFile, str_replace($needle, $needle.'        '.$fileKey.",\n", $content));
+
+            return;
         }
 
-        File::put($webFile, $content);
+        $legacyRequire = "require __DIR__ . '/{$tableName}.php'";
+        if (! Str::contains($content, $legacyRequire)) {
+            File::append($webFile, "\n    if (is_file(__DIR__ . '/{$tableName}.php')) { require __DIR__ . '/{$tableName}.php'; }\n");
+        }
     }
 
     protected function arrayLines(array $items, int $spaces = 8): string

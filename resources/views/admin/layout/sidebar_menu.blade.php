@@ -90,6 +90,7 @@
                             <?php $name = 'admin.' . $child_item->name . '.view'; ?>
                             <?php $name_route = $child_item->name . '.view'; ?>
                             @can($name)
+                            @if (\Illuminate\Support\Facades\Route::has($name_route))
                             <!--begin:Menu item-->
                             <div class="menu-item">
                                 <!--begin:Menu link-->
@@ -104,6 +105,7 @@
                                 <!--end:Menu link-->
                             </div>
                             <!--end:Menu item-->
+                            @endif
                             @endcan
                             @endforeach
                         </div>
@@ -113,6 +115,7 @@
                 </div>
                 <!--end:Menu item-->
                 @else
+                @if (\Illuminate\Support\Facades\Route::has($namep_route))
                 <div class="menu-item">
                     <!--begin:Menu link-->
                     <a class="menu-link" href="{{ route($namep_route) }}">
@@ -125,6 +128,7 @@
                     </a>
                     <!--end:Menu link-->
                 </div>
+                @endif
                 @endif
                 @endcan
                 @endforeach
